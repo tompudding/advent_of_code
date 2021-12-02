@@ -3,22 +3,18 @@ import sys
 
 
 def delta(filename, n):
-
     count = 0
     with open(sys.argv[1], "r") as file:
-        buffer = [int(file.readline().strip(), 10) for i in range(n)]
+        data = (int(line.strip(), 10) for line in file)
 
-        for line in file:
-            try:
-                n = int(line.strip(), 10)
-            except:
-                continue
+        window = [next(data) for i in range(n)]
 
-            if n > buffer[0]:
+        for n in data:
+            if n > window[0]:
                 count += 1
 
-            buffer.pop(0)
-            buffer.append(n)
+            window.pop(0)
+            window.append(n)
     return count
 
 
