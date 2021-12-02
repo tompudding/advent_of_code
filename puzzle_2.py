@@ -22,6 +22,11 @@ class Position:
 
         self.handlers[command](number)
 
+    def process_file(self, filename):
+        with open(filename, "r") as file:
+            for line in file:
+                self.process_line(line.strip())
+
 
 class RealPosition(Position):
     def __init__(self):
@@ -40,17 +45,11 @@ class RealPosition(Position):
 
 
 pos = Position()
-
-with open(sys.argv[1], "r") as file:
-    for line in file:
-        pos.process_line(line.strip())
+pos.process_file(sys.argv[1])
 
 print(f"{pos.x=} {pos.depth=} {pos.x*pos.depth}")
 
 pos = RealPosition()
-
-with open(sys.argv[1], "r") as file:
-    for line in file:
-        pos.process_line(line.strip())
+pos.process_file(sys.argv[1])
 
 print(f"{pos.x=} {pos.depth=} {pos.x*pos.depth}")
