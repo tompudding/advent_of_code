@@ -30,7 +30,6 @@ def bit_filter(words, most_common_change, tie_break):
     for i in range(width):
         # We want to keep anything that has the most common bit ^ most_common_change at this position
         match_bit = most_common_at_position(words, i, tie_break ^ most_common_change) ^ most_common_change
-
         words = [word for word in words if word[i] == match_bit]
         if len(words) == 1:
             break
