@@ -18,6 +18,9 @@ with open(sys.argv[1], "r") as file:
 
 numbers.sort()
 
+# Apparently part 1 is the definition of median /shrug
+print(calc_fuel_part_one(numbers, numbers[len(numbers) // 2]))
+
 
 def get_best(numbers, calc):
 
@@ -43,5 +46,6 @@ def get_best(numbers, calc):
     return min_fuel
 
 
+# Also compute it the long way
 print(get_best(numbers, calc_fuel_part_one))
 print(get_best(numbers, calc_fuel_part_two))
