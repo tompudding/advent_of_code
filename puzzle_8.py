@@ -1,5 +1,62 @@
 import sys
 
+
+digits_to_segments = {
+    "0": "abcefg",
+    "1": "cf",
+    "2": "acdeg",
+    "3": "acdfg",
+    "4": "bcdf",
+    "5": "abdfg",
+    "6": "abdefg",
+    "7": "acf",
+    "8": "abcdefg",
+    "9": "abcdfg",
+}
+
+
+def get_counts(words):
+    counts = {}
+
+    for segment in "".join(words):
+        try:
+            counts[segment] += 1
+        except KeyError:
+            counts[segment] = 1
+    return counts
+
+
+def get_score(word, segment_counts):
+    score = 0
+    for segment in word:
+        score += segment_counts[segment]
+
+    return score
+
+
+canonical_scores = {}
+canonical_counts = get_counts(digits_to_segments.values())
+canonical_scores = {get_score(word, canonical_counts): digit for digit, word in digits_to_segments.items()}
+
+assert len(canonical_scores) == 10
+
+
+def process_line(line):
+    patterns, output = (part.split() for part in line.split("|"))
+
+    segment_counts = get_counts(patterns)
+
+    words_to_digit = {}
+
+    for word in patterns:
+        score = get_score(word, segment_counts)
+        digit = canonical_scores[score]
+        words_to_digit[tuple(sorted(word))] = digit
+
+    output = int("".join([words_to_digit[tuple(sorted(word))] for word in output]))
+    return output
+
+
 count = 0
 
 with open(sys.argv[1], "r") as file:
@@ -12,78 +69,9 @@ with open(sys.argv[1], "r") as file:
 print(count)
 
 
-def count(words, char):
-    return len([word for word in words if char in word])
-
-
-def guess(left, digits_to_word, digit, candidates):
-    if len(candidates) != 1:
-        raise Bobbins  # SystemExit("You messed up")
-    digits_to_word[digit] = candidates[0]
-    return left - set(candidates)
-
-
 total = 0
 with open(sys.argv[1], "r") as file:
     for line in file:
-        patterns, output = (part.split() for part in line.split("|"))
-        match = False
-        map = {}
-        digits_to_word = {}
-        easy_lengths = {2: 1, 4: 4, 3: 7, 7: 8}
-        left = set()
-        for word in patterns:
-            try:
-                digit = easy_lengths[len(word)]
-                map[word] = digit
-                digits_to_word[digit] = word
-            except KeyError:
-                left.add(word)
-
-        # That gives us the easy 4. Next we can deduce what segment represents c and which f
-        a = (set(digits_to_word[7]) - set(digits_to_word[1])).pop()
-
-        # c is in 7 and in 8 of the other words, whereas f is in 9
-        cf = set(digits_to_word[8]) & set(digits_to_word[1])
-        for char in cf:
-            if count(patterns, char) == 8:
-                c = char
-                f = (cf - set(char)).pop()
-            else:
-                f = char
-                c = (cf - set(char)).pop()
-
-        left = guess(left, digits_to_word, 2, [word for word in left if len(word) == 5 and f not in word])
-
-        # Of The remaining 2 length 5 words, 3 has c in it and 5 does not
-        left = guess(left, digits_to_word, 3, [word for word in left if len(word) == 5 and c in word])
-        left = guess(left, digits_to_word, 5, [word for word in left if len(word) == 5 and c not in word])
-
-        # next let's work out what d is
-        bd = set(digits_to_word[4]) - cf
-
-        b = (bd - set(digits_to_word[2])).pop()
-        d = (bd - set(b)).pop()
-
-        # Then looking at the remaining length sixers, they're each missing only one character. If it's d, it's 0
-
-        left = guess(left, digits_to_word, 0, [word for word in left if d not in word])
-
-        # If it's c, it's 6
-        left = guess(left, digits_to_word, 6, [word for word in left if c not in word])
-
-        # Then only 9 is left
-        digits_to_word[9] = left.pop()
-
-        # I was supposed to do this the other way around lol
-        words_to_digits = {tuple(sorted(v)): k for k, v in digits_to_word.items()}
-
-        # That's got the digits to word, so count the outputs...
-        output = [words_to_digits[tuple(sorted(word))] for word in output]
-
-        # Screw int parsing!
-        for pos, val in enumerate(output):
-            total += val * (10 ** (3 - pos))
-
+        total += process_line(line.strip())
 
 print(total)
