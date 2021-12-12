@@ -13,8 +13,8 @@ class Path:
         self.graph = graph
 
     def add_node(self, node):
-        new = copy.deepcopy(self)
-        new.path += [node]
+        new = type(self)(self.graph, self.path + [node])
+        new.small_visited = set(self.small_visited)
 
         if is_small(node):
             new.small_visited.add(node)
@@ -34,13 +34,10 @@ class RevisitPath(Path):
 
     def add_node(self, node):
         double = is_small(node) and node in self.small_visited
-
         new = super().add_node(node)
-        if double:
-            if new.small_double_visit:
-                assert False
-            else:
-                new.small_double_visit = node
+        new.small_double_visit = self.small_double_visit
+        if double and not new.small_double_visit:
+            new.small_double_visit = node
         return new
 
     def can_visit(self, node):
@@ -100,6 +97,7 @@ for path in graph.get_paths():
     count += 1
 
 print(count)
+
 
 graph = Graph(sys.argv[1], RevisitPath)
 
