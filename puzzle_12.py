@@ -2,38 +2,33 @@ import sys
 import copy
 
 
-def is_small(node):
-    return node.islower()
-
-
 class Path:
-    def __init__(self, graph, path=[]):
-        self.small_visited = set([node for node in path if is_small(node)])
+    def __init__(self, graph, path, small_visited):
         self.path = path
         self.graph = graph
+        self.small_visited = set(small_visited)
 
     def add_node(self, node):
-        new = type(self)(self.graph, self.path + [node])
-        new.small_visited = set(self.small_visited)
+        new = type(self)(self.graph, self.path + [node], self.small_visited)
 
-        if is_small(node):
+        if node in self.graph.small:
             new.small_visited.add(node)
         return new
 
     def can_visit(self, node):
-        if not is_small(node):
+        if node not in self.graph.small:
             return True
 
         return node not in self.small_visited
 
 
 class RevisitPath(Path):
-    def __init__(self, graph, path=[]):
-        super().__init__(graph, path)
+    def __init__(self, graph, path, small_visited):
+        super().__init__(graph, path, small_visited)
         self.small_double_visit = None
 
     def add_node(self, node):
-        double = is_small(node) and node in self.small_visited
+        double = node in self.graph.small and node in self.small_visited
         new = super().add_node(node)
         new.small_double_visit = self.small_double_visit
         if double and not new.small_double_visit:
@@ -48,13 +43,15 @@ class RevisitPath(Path):
         if self.small_double_visit is not None:
             return False
 
-        return node not in ["start", "end"]
+        return node not in graph.ends
 
 
 class Graph:
     def __init__(self, filename, path_class):
         self.nodes = {}
         self.path_class = path_class
+        self.small = set()
+        self.ends = {"start", "end"}
 
         with open(sys.argv[1], "r") as file:
             for line in file:
@@ -67,12 +64,15 @@ class Graph:
                     self.nodes[b].add(a)
                 except KeyError:
                     self.nodes[b] = set([a])
+                for node in (a, b):
+                    if node.islower():
+                        self.small.add(node)
 
     def walk(self, node, path):
         try:
             for neighbour in self.nodes[node]:
                 if neighbour == "end":
-                    yield path.path + ["end"]
+                    yield path.path
                     continue
                 if not path.can_visit(neighbour):
                     continue
@@ -83,7 +83,7 @@ class Graph:
 
     def get_paths(self):
 
-        path = self.path_class(self, ["start"])
+        path = self.path_class(self, ["start"], ["start"])
 
         for full_path in self.walk("start", path):
             yield full_path
