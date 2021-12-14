@@ -37,15 +37,15 @@ class Polymer:
         self.pair_counts = self.new_counts
 
     def counts(self):
-        # This counts each character twice, except for the ends, so start them at 1 so we can divide the whole lot by 2.
-        counts = {self.start_chain[0]: 1, self.start_chain[-1]: 1}
+        # We only count the first character of each pair as the second is considered as the first of another
+        # pair, except for the last character, so give that an extra one
+        counts = {self.start_chain[-1]: 1}
 
         for pair, count in self.pair_counts.items():
-            for char in pair:
-                try:
-                    counts[char] += count
-                except KeyError:
-                    counts[char] = count
+            try:
+                counts[pair[0]] += count
+            except KeyError:
+                counts[pair[0]] = count
         return sorted(counts.values())
 
 
@@ -56,10 +56,10 @@ for i in range(10):
 
 counts = polymer.counts()
 
-print((counts[-1] - counts[0]) >> 1)
+print(counts[-1] - counts[0])
 
 for i in range(30):
     polymer.step()
 counts = polymer.counts()
 
-print((counts[-1] - counts[0]) >> 1)
+print(counts[-1] - counts[0])
