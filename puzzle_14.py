@@ -6,10 +6,10 @@ class Polymer:
     def __init__(self, filename):
         with open(filename, "r") as file:
             self.pair_counts = {}
-            start_chain = file.readline().strip()
+            self.start_chain = file.readline().strip()
 
-            for i in range(len(start_chain) - 1):
-                pair = start_chain[i : i + 2]
+            for i in range(len(self.start_chain) - 1):
+                pair = self.start_chain[i : i + 2]
                 try:
                     self.pair_counts[pair] += 1
                 except KeyError:
@@ -37,8 +37,8 @@ class Polymer:
         self.pair_counts = self.new_counts
 
     def counts(self):
-        # This counts each character twice, except for the last one.
-        counts = {}
+        # This counts each character twice, except for the ends, so start them at 1 so we can divide the whole lot by 2.
+        counts = {self.start_chain[0]: 1, self.start_chain[-1]: 1}
 
         for pair, count in self.pair_counts.items():
             for char in pair:
@@ -51,11 +51,15 @@ class Polymer:
 
 polymer = Polymer(sys.argv[1])
 
-for i in range(40):
+for i in range(10):
     polymer.step()
 
-print(polymer.new_counts)
 counts = polymer.counts()
 
+print((counts[-1] - counts[0]) >> 1)
+
+for i in range(30):
+    polymer.step()
+counts = polymer.counts()
 
 print((counts[-1] - counts[0]) >> 1)
