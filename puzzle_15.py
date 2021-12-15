@@ -1,5 +1,5 @@
 import sys
-import queue
+import heapq
 
 
 def heuristic(a, b):
@@ -34,15 +34,15 @@ class Grid:
             yield target
 
     def get_path(self, start, end):
-        frontier = queue.PriorityQueue()
-        frontier.put(start, 0)
+        frontier = []
+        heapq.heappush(frontier, (0, start))
         came_from = {}
         cost_so_far = {}
         came_from[start] = None
         cost_so_far[start] = 0
 
-        while not frontier.empty():
-            current = frontier.get()
+        while frontier:
+            s, current = heapq.heappop(frontier)
 
             if current == end:
                 break
@@ -52,7 +52,7 @@ class Grid:
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost
                     priority = new_cost + heuristic(end, next)
-                    frontier.put(next, priority)
+                    heapq.heappush(frontier, (priority, next))
                     came_from[next] = current
 
         # reconstruct the path
