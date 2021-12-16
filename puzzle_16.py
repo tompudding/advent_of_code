@@ -11,7 +11,7 @@ class Packet:
         self.packets = []
 
     def print_lines(self):
-        yield f"[PACKET:{self.name}] version={self.version} type_id={self.type_id}"
+        yield f"[PACKET:{self.__class__.__name__}] version={self.version} type_id={self.type_id} value={self.value}"
 
     def __repr__(self):
         return "\n".join(self.print_lines())
@@ -25,9 +25,8 @@ class Packet:
         return total
 
 
-class LiteralPacket(Packet):
+class Literal(Packet):
     type_id = 4
-    name = "Literal"
 
     def __init__(self, version, type_id, stream):
         super().__init__(version, type_id, stream)
@@ -41,10 +40,6 @@ class LiteralPacket(Packet):
             self.value <<= 4
             self.value |= val & 0xF
         self.length += pos
-
-    def print_lines(self):
-        for line in super().print_lines():
-            yield line + f": value={self.value}"
 
 
 class Operator(Packet):
@@ -68,20 +63,16 @@ class Operator(Packet):
     def parse_packets(self, stream):
         while len(self.packets) < self.num_packets:
             packet, stream = packet_factory(stream)
-            # print(packet, packet.length)
             self.packets.append(packet)
             self.length += packet.length
 
     def parse_bits(self, stream):
         consumed = 0
         while consumed < self.sub_length:
-            # print(f"{consumed=} {self.length=}")
             packet, stream = packet_factory(stream)
-            # print(packet)
             self.packets.append(packet)
             consumed += packet.length
             self.length += packet.length
-        # print(f"{consumed=} {self.length=}")
 
     def print_lines(self):
         for line in super().print_lines():
@@ -97,6 +88,7 @@ class Operator(Packet):
 
 class Sum(Operator):
     type_id = 0
+    name = "Sum"
 
     @property
     def value(self):
@@ -160,22 +152,19 @@ class Equal(Operator):
         return 1 if a.value == b.value else 0
 
 
-packet_classes = [LiteralPacket, Sum, Product, Minimum, Maximum, GreaterThan, LessThan, Equal]
+packet_classes = [Literal, Sum, Product, Minimum, Maximum, GreaterThan, LessThan, Equal]
 packet_machines = {packet.type_id: packet for packet in packet_classes}
 
 
 def packet_factory(stream):
-    # print(f"packet factory {stream=}")
     if len(stream) <= 6 or "1" not in stream:
         # we're done
         return None, ""
 
     version, type_id = int(stream[:3], 2), int(stream[3:6], 2)
-    # print("AA", version, type_id)
     try:
         packet_type = packet_machines[type_id]
     except KeyError:
-        # print(f"Unknown type_id {type_id}, using operator")
         packet_type = Operator
     packet = packet_type(version, type_id, stream[6:])
 
@@ -192,7 +181,6 @@ with open(sys.argv[1], "r") as file:
     stream = f"{hexa:b}"
     padding = width - len(stream)
     stream = ("0" * padding) + stream
-    print(stream)
 
 
 total = 0
