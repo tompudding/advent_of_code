@@ -90,8 +90,77 @@ class Operator(Packet):
                 for line in packet.print_lines():
                     yield "  " + line
 
+    @property
+    def value(self):
+        raise ValueError("Base operator doesn't implement value")
 
-packet_classes = [LiteralPacket]
+
+class Sum(Operator):
+    type_id = 0
+
+    @property
+    def value(self):
+        return sum(packet.value for packet in self.packets)
+
+
+class Product(Operator):
+    type_id = 1
+
+    @property
+    def value(self):
+        total = 1
+        for packet in self.packets:
+            total *= packet.value
+        return total
+
+
+class Minimum(Operator):
+    type_id = 2
+
+    @property
+    def value(self):
+        return min((packet.value for packet in self.packets))
+
+
+class Maximum(Operator):
+    type_id = 3
+
+    @property
+    def value(self):
+        return max((packet.value for packet in self.packets))
+
+
+class GreaterThan(Operator):
+    type_id = 5
+
+    @property
+    def value(self):
+        a, b = self.packets
+
+        return 1 if a.value > b.value else 0
+
+
+class LessThan(Operator):
+    type_id = 6
+
+    @property
+    def value(self):
+        a, b = self.packets
+
+        return 1 if a.value < b.value else 0
+
+
+class Equal(Operator):
+    type_id = 7
+
+    @property
+    def value(self):
+        a, b = self.packets
+
+        return 1 if a.value == b.value else 0
+
+
+packet_classes = [LiteralPacket, Sum, Product, Minimum, Maximum, GreaterThan, LessThan, Equal]
 packet_machines = {packet.type_id: packet for packet in packet_classes}
 
 
@@ -116,15 +185,18 @@ def packet_factory(stream):
 # Start by grabbing the hex and binarifying it
 
 with open(sys.argv[1], "r") as file:
-    hexa = int(file.read().strip(), 16)
-    # it needs prepadding so that it's a multiple of four long
+    hexa_str = file.read().strip()
+    hexa = int(hexa_str, 16)
+    # it needs 0 padding to the right width
+    width = len(hexa_str) * 4
     stream = f"{hexa:b}"
-    padding = ((len(stream) + 3) & ~3) - len(stream)
+    padding = width - len(stream)
     stream = ("0" * padding) + stream
     print(stream)
 
 
 total = 0
+outermost_value = None
 while len(stream) >= 6 or "1" in stream:
     packet, stream = packet_factory(stream)
     if packet is None:
@@ -132,4 +204,10 @@ while len(stream) >= 6 or "1" in stream:
     print(packet)
     total += packet.version_sum()
 
+    if outermost_value is None:
+        outermost_value = packet.value
+
 print(total)
+
+# For part 2 we want the value of the outermost packet
+print(outermost_value)
