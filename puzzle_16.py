@@ -2,8 +2,6 @@ import sys
 
 
 class Packet:
-    name = "base"
-
     def __init__(self, version, type_id, stream):
         self.version = version
         self.type_id = type_id
@@ -44,7 +42,6 @@ class Literal(Packet):
 
 class Operator(Packet):
     type_id = 0
-    name = "Unknown Operator"
 
     def __init__(self, version, type_id, stream):
         super().__init__(version, type_id, stream)
@@ -88,7 +85,6 @@ class Operator(Packet):
 
 class Sum(Operator):
     type_id = 0
-    name = "Sum"
 
     @property
     def value(self):
