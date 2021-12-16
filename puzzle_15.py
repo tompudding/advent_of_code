@@ -7,7 +7,7 @@ def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
-# A star implementation stolen from red blob games https://www.redblobgames.com/pathfinding/a-star/introduction.html
+# A* implementation stolen from red blob games https://www.redblobgames.com/pathfinding/a-star/introduction.html
 class Grid:
     def __init__(self, filename):
         self.grid = {}
