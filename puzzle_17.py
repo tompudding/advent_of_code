@@ -35,7 +35,6 @@ for initial_v in range(-1000, 1000):
             current_max_height = pos
         v -= 1
         if y1 <= pos <= y2:
-            print(f"{initial_v=}, {step=}, {pos=}, {max_height=}")
             if current_max_height > max_height:
                 max_height = current_max_height
             try:
@@ -57,6 +56,9 @@ for initial_v in range(0, 1000):
         pos += v
         if v > 0:
             v -= 1
+
+        if pos > x2:
+            break
 
         if step in in_area and x1 <= pos <= x2:
             for y in in_area[step]:
