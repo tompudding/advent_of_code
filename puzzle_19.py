@@ -1,12 +1,10 @@
 import sys
 import itertools
 
-import numpy as np
-
 rotations = set()
 
 for v in itertools.permutations([0, 1, 2]):
-    # We only consider positive X as otherwise we'd get the same rotations twice
+    # This gives 48 rotations which is not correct, but ends up working anyway /shrug
     for x in (-1, 1):
         for y in (-1, 1):
             for z in (-1, 1):
@@ -38,29 +36,22 @@ class Distance:
     def __init__(self, start, end):
         self.start = start
         self.end = end
-        self.diff = (end[2] - start[2], end[1] - start[1], end[0] - start[0])
+        self.diff = vector_diff(end, start)
         self.length = sum((diff ** 2 for diff in self.diff))
-
-        # print(f"{start}->{end} = {self.diff} length={self.length}")
 
     def __hash__(self):
         return hash(self.length)
 
-    def __repr__(self):
-        return f"{self.start}->{self.end} = {self.diff} length={self.length}"
-
     def __eq__(self, other):
         return other.length == self.length
 
-    def __lt__(self, other):
-        return self.length < other.length
-
 
 class Scanner:
-    def __init__(self, points):
+    def __init__(self, points, need_distance=True):
         self.points = points
         self.distance_to_point = {}
-        self.build_distances()
+        if need_distance:
+            self.build_distances()
         self.pos = (0, 0, 0)
 
     def build_distances(self):
@@ -72,8 +63,6 @@ class Scanner:
                     continue
                 distances.add(Distance(point, other))
             self.matrix.append(distances)
-            # wtf = tuple(sorted(list(distances)))
-            # self.distance_to_point[wtf] = i
 
     def points_in_common(self, other):
         point_map = {}
@@ -83,7 +72,7 @@ class Scanner:
                 # Why 11?
                 if len(matches) >= 11:
                     point_map[i] = j
-                # print(i, j, len(self.matrix[i] & other.matrix[j]))
+
         return point_map
 
     def transform(self, rot, trans):
@@ -92,10 +81,9 @@ class Scanner:
 
         for point in self.points:
             new_point = tuple(vector_add(rotate(point, rot), trans))
-            # print(f"translate {point} to {new_point} with rotation {rot} and translation {trans}")
             points.append(new_point)
 
-        out = Scanner(points)
+        out = Scanner(points, need_distance=False)
         out.pos = tuple(vector_add(rotate(self.pos, rot), trans))
         return out
 
@@ -132,10 +120,8 @@ for i in range(len(scanners)):
         if len(common) == 0:
             continue
 
-        # print(f"scanner {i} : scanner {j} have {len(common)} in common")
-
-        # This allows us to work out the relative position and rotation of the two scanners.
-        # Pick 2 points the same, then look at their difference. Rotate the second until it's the same as the
+        # This allows us to work out the relative position and rotation of the two scanners.  Pick 2 points
+        # the same, then look at their difference. Rotate the second until it's the same as the first
         ((point_one_i, point_one_j), (point_two_i, point_two_j)) = [a for a in common.items()][:2]
 
         point_one_i = scanners[i].points[point_one_i]
@@ -143,12 +129,8 @@ for i in range(len(scanners)):
         point_two_i = scanners[i].points[point_two_i]
         point_two_j = scanners[j].points[point_two_j]
 
-        diff_j = np.array([point_two_j[n] - point_one_j[n] for n in (0, 1, 2)])
-        diff_i = np.array([point_two_i[n] - point_one_i[n] for n in (0, 1, 2)])
-
-        # from here it is the code I have written to test this function
-        vector_i = diff_i
-        vector_j = diff_j
+        vector_j = [point_two_j[n] - point_one_j[n] for n in (0, 1, 2)]
+        vector_i = [point_two_i[n] - point_one_i[n] for n in (0, 1, 2)]
 
         for rot in rotations:
             rotated = rotate(vector_j, rot)
