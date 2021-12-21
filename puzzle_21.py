@@ -14,7 +14,7 @@ class Player:
         self.score = 0
 
     def move(self, amount):
-        self.pos = ((self.pos + amount - 1) % 10) + 1
+        self.pos = move(self.pos, amount)
         self.score += self.pos
 
 
