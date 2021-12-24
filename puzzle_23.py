@@ -82,9 +82,7 @@ class Rooms:
         for line_num in range(2, 4):
             for pos in (3, 5, 7, 9):
                 letter = lines[line_num][pos]
-                print(letter)
                 index = (ord(letter) - ord("A")) * 2
-                print(coord)
                 if state[index] == 0:
                     state[index] = coord
                 else:
@@ -138,7 +136,6 @@ class Rooms:
                     return None
                 path.append(pos)
 
-        print(path)
         return (len(path) - 1) * self.scores[piece]
 
     def __repr__(self):
@@ -203,10 +200,8 @@ def solve(state, previous_states, last_moved, total_score):
 
         for target in targets:
             piece_name = "AABBCCDD"[piece]
-            print(f"Try {piece_name} to {target} from {pos}")
             score = state.path(piece, pos, target)
             if score is None:
-                print("bad path")
                 continue
 
             # This is where we're moving
@@ -216,13 +211,10 @@ def solve(state, previous_states, last_moved, total_score):
             new_state = list(state.state[::])
             new_state[piece] = target
             new_state = Rooms(new_state)
-            print(f"Move piece {piece_name} to {target}")
-            print(new_state)
+            # print(new_state)
 
             for solution in solve(new_state, previous_states, piece, total_score + score):
                 yield solution
-
-    print("Im done")
 
 
 with open(sys.argv[1], "r") as file:
@@ -233,6 +225,7 @@ print(rooms)
 
 
 for solution in solve(rooms, set(), None, 0):
-    print(solution)
+    # print(solution)
+    pass
 
 print(best)
