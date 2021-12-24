@@ -191,7 +191,6 @@ def solve(state, previous_states, last_moved, total_score):
             targets.extend(list(Rooms.hallway - Rooms.no_stop))
 
         for target in targets:
-            piece_name = "AABBCCDD"[piece]
             score = state.path(piece, pos, target)
             if score is None:
                 continue
