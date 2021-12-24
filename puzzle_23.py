@@ -8,30 +8,12 @@ class Rooms:
     # # 0  1  2  3  4  5  6  7  8  9 10 #
     # ###### 13 ## 15 ## 17 ## 19 #######
     #      # 24 ## 26 ## 28 ## 30 #
+    # OPT  # 35 ## 37 ## 39 ## 41 #
+    # OPT  # 46 ## 48 ## 50 ## 52 #
     #      ########################
     #
     # A state is a list of 8 positions, A, A, B, etc.
     # By not distinguishing the two letters that are the same we're going to be increasing the state space by a lot. Hmmm
-    neighbours = {
-        0: {1},
-        1: {0, 2},
-        2: {13, 3},
-        3: {2, 4},
-        4: {3, 15, 5},
-        5: {4, 6},
-        6: {5, 17, 7},
-        7: {6, 8},
-        8: {7, 19, 9},
-        10: {9},
-        13: {2, 24},
-        15: {4, 26},
-        17: {6, 28},
-        19: {8, 30},
-        24: {13},
-        26: {15},
-        28: {17},
-        30: {19},
-    }
 
     rooms = [{13 + 11 * i + 2 * j for i in range(4)} for j in range(4)]
     all_rooms = rooms[0] | rooms[1] | rooms[2] | rooms[3]
@@ -40,25 +22,19 @@ class Rooms:
     final = (13, 24, 15, 26, 17, 28, 19, 30)
     bottom = {i for i in range(24, 31, 2)}
     scores = (1, 1, 10, 10, 100, 100, 1000, 1000)
-    destinations = {
-        0: (3, 5, 7, 9, 10),
-        1: (3, 5, 7, 9, 10),
-        3: (0, 1, 5, 7, 9, 10),
-        5: (0, 1, 3, 7, 9, 10),
-        7: (0, 1, 3, 5, 9, 10),
-        9: (0, 1, 3, 5, 7),
-    }
+
     target_rooms = {
-        0: (13, 24),
-        1: (13, 24),
-        2: (15, 26),
-        3: (15, 26),
-        4: (17, 28),
-        5: (17, 28),
-        6: (19, 30),
-        7: (19, 30),
+        0: {13, 24},
+        1: {13, 24},
+        2: {15, 26},
+        3: {15, 26},
+        4: {17, 28},
+        5: {17, 28},
+        6: {19, 30},
+        7: {19, 30},
     }
-    coords = {i: (i, 0) for i in range(11)} | {
+    coords = {i: (i, 0) for i in range(11)}
+    coords.update({
         13: (2, 1),
         15: (4, 1),
         17: (6, 1),
@@ -67,7 +43,7 @@ class Rooms:
         26: (4, 2),
         28: (6, 2),
         30: (8, 2),
-    }
+    })
 
     def __init__(self, state):
         self.state = tuple(sorted(state[0:2]) + sorted(state[2:4]) + sorted(state[4:6]) + sorted(state[6:8]))
@@ -173,7 +149,9 @@ def solve(state, previous_states, last_moved, total_score):
         pos = state.state[piece]
 
         # Firstly, we can only move this piece if it's not trapped
-        if pos in Rooms.bottom and pos - 11 in state.state_set:
+        above = {pos - (i+1)*11 for i in range(pos//11)}
+        #print('AA',pos, above)
+        if above & state.state_set:
             continue
 
         if pos in Rooms.target_rooms[piece] and pos in Rooms.bottom or state.state[piece ^ 1] == pos + 11:
