@@ -22,6 +22,7 @@ class Rooms:
     final = (13, 24, 15, 26, 17, 28, 19, 30)
     bottom = {i for i in range(24, 31, 2)}
     scores = (1, 1, 10, 10, 100, 100, 1000, 1000)
+    levels = 2
 
     target_rooms = {
         0: {13, 24},
@@ -68,6 +69,14 @@ class Rooms:
                     coord = 24
 
         return Rooms(tuple(state))
+
+    def piece_at(self, pos):
+        try:
+            index = self.state.index(pos)
+            return index // self.levels
+        except ValueError:
+            return None
+        
 
     def path(self, piece, start, target):
         # We simply want to change X to the right place, then change y
@@ -150,12 +159,16 @@ def solve(state, previous_states, last_moved, total_score):
 
         # Firstly, we can only move this piece if it's not trapped
         above = {pos - (i+1)*11 for i in range(pos//11)}
-        #print('AA',pos, above)
+
         if above & state.state_set:
             continue
 
-        if pos in Rooms.target_rooms[piece] and pos in Rooms.bottom or state.state[piece ^ 1] == pos + 11:
+        # Then if we're in the right room and all the things below us are also right, we cannot move
+        below = {pos + (i+1)*11 for i in range(state.levels - pos//11)}
+        normal_piece = state.piece_at(pos)
+        if pos in Rooms.target_rooms[piece] and all(state.piece_at(below_pos) == normal_piece for below_pos in below):
             continue
+
 
         # OK We'll move this piece
         moved = piece
@@ -165,14 +178,15 @@ def solve(state, previous_states, last_moved, total_score):
 
         targets = []
         # We can only enter a room if it's either empty and we go to the bottom, or it already has the correct type at the bottom and we go to the top
-        for room_pos in Rooms.target_rooms[piece]:
-            if room_pos not in Rooms.bottom:
-                if state.state[piece ^ 1] == room_pos + 11:
-                    targets.append(room_pos)
-            else:
-                # This will get caught in the pathing
-                targets.append(room_pos)
 
+        taken_in_room = [state.piece_at(room_pos) for room_pos in Rooms.target_rooms[piece] if room_pos != pos]
+        taken_in_room = [taken for taken in taken_in_room if taken is not None]
+        if all((piece == normal_piece for piece in taken_in_room)):
+            open_in_room = [room_pos for room_pos in Rooms.target_rooms[piece] if room_pos not in state.state_set]
+            if len(open_in_room) >= 1:
+                #There's an open spot, but we can only take it if all the others in that position are of the right piece
+                targets.append(sorted(open_in_room)[-1])
+        
         if pos not in Rooms.hallway:
             targets.extend(list(Rooms.hallway - Rooms.no_stop))
 
