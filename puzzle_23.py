@@ -1,5 +1,9 @@
 import sys
+import heapq
 
+def heuristic(a, b):
+    # Let's go for a very simple number of state matches
+    return sum(x != y for x,y in zip(a.state, b.state))
 
 class Rooms:
     # This is our coordinate system:
@@ -51,6 +55,15 @@ class Rooms:
         self.state = tuple(sorted(state[0:2]) + sorted(state[2:4]) + sorted(state[4:6]) + sorted(state[6:8]))
         self.state_set = set(self.state)
         self.best = None
+
+    def __hash__(self):
+        return hash(self.state)
+
+    def __eq__(self, other):
+        return self.state == other.state
+
+    def __lt__(self, other):
+        return self.state < other.state
 
 
     @staticmethod
@@ -127,6 +140,85 @@ class Rooms:
                 count += 1
 
         return (count) * self.scores[piece]
+
+    def moves(self):
+        for piece in range(len(self.state)):
+            pos = self.state[piece]
+
+
+            # Firstly, we can only move this piece if it's not trapped
+
+            try:
+                if self.above[pos] & self.state_set:
+                    continue
+            except KeyError:
+                pass
+
+
+            # Then if we're in the right room and all the things below us are also right, we cannot move
+
+            normal_piece = piece // (self.levels)
+
+            if pos in self.target_rooms[piece]:
+                #below = {pos + (i+1)*11 for i in range(self.levels - pos//11)}
+                if all(self.piece_at(below_pos) == normal_piece for below_pos in self.below[pos]):
+                    continue
+
+
+            # OK We'll move this piece
+            moved = piece
+
+            # If we're in the hallway our options are another hallway position (as long as it crosses a door),
+            # or the correct room (if it's either empty or has the same type of piece as me
+
+            #targets = []
+            # We can only enter a room if it's either empty and we go to the bottom, or it already has the correct type at the bottom and we go to the top
+
+            taken_in_room = [self.piece_at(room_pos) for room_pos in self.target_rooms[piece] if room_pos != pos]
+            taken_in_room = [taken for taken in taken_in_room if taken is not None]
+
+            if all((piece == normal_piece for piece in taken_in_room)):
+                open_in_room = [room_pos for room_pos in self.target_rooms[piece] if room_pos not in self.state_set]
+                #print('BB',open_in_room)
+                if len(open_in_room) >= 1:
+                    #There's an open spot, but we can only take it if all the others in that position are of the right piece
+                    yield piece, max(open_in_room)
+                    #targets.append((max(open_in_room), 1))
+
+                #print('xx')
+        
+            if pos not in self.hallway:
+                for target, pref in self.to_hallway_moves:
+                    yield piece, target
+                #targets.extend(self.to_hallway_moves)
+
+    def neighbours(self):
+        for piece, target in self.moves():
+            pos = self.state[piece]
+            score = self.path(piece, pos, target)
+            if score is None:
+                continue
+
+            # This is where we're moving
+            #if self.state in previous_states:
+            #    continue
+            #previous_states[self.state] = (len(previous_states), total_score+score)
+
+            # make a new target state
+            new_state = list(self.state[::])
+            new_state[piece] = target
+            new_state = self.__class__(new_state)
+
+            yield new_state, score
+
+
+        #for target, preference in targets:
+
+         #   moves.append((piece, target, preference))
+
+    #moves.sort( key= lambda item: item[0])
+    #moves.sort( key= lambda item: item[2], reverse=True)
+
 
     def __repr__(self):
         out = ["#############", "#...........#", "###.#.#.#.###", "  #.#.#.#.#  ", "  #########  "]
@@ -210,7 +302,7 @@ all_time = {}
 
 actual_path=[(3,10),(0,0),(1,9),(1,7),(0,1), (2,39), (2,28), (1, 5), (3, 3), (1,48), (1, 37), (1,26), (2,17), (0,9), (3,52), (1,15), (3,41), (3, 30), (0,35), (0, 24)]
 
-def solve(cls, state, last_moved, solution):
+def solve_dfs(state, last_moved, solution):
     global best
     # Let's try looping over the possible moves we can take. We won't move the same piece as last time,
     # and we won't move anything in the hallway unless it crosses a door
@@ -221,12 +313,12 @@ def solve(cls, state, last_moved, solution):
     #    print(len(solution))
     #    print(solution[-1])
 
-    if state.state in all_time:
-        return all_time[state.state]
+    #if state.state in all_time:
+    #    return all_time[state.state]
 
     if state.state == state.final:
         total = 0
-        print ('got solution')
+
         for step, cost in solution:
             total += cost
         if total < best:
@@ -235,68 +327,16 @@ def solve(cls, state, last_moved, solution):
             #print(step)
             #print('*'*80)
         return 0, []
+
+    if state.state in all_time:
+        return all_time[state.state]
     best_cost = None
     best_solution = None
-    moves = []
-    for piece in range(len(state.state)):
-        pos = state.state[piece]
-
-
-        # Firstly, we can only move this piece if it's not trapped
-
-        try:
-            if state.above[pos] & state.state_set:
-                continue
-        except KeyError:
-            pass
-
-
-        # Then if we're in the right room and all the things below us are also right, we cannot move
-
-        normal_piece = piece // (state.levels)
-
-        if pos in state.target_rooms[piece]:
-            #below = {pos + (i+1)*11 for i in range(state.levels - pos//11)}
-            if all(state.piece_at(below_pos) == normal_piece for below_pos in state.below[pos]):
-                continue
-
-
-        # OK We'll move this piece
-        moved = piece
-
-        # If we're in the hallway our options are another hallway position (as long as it crosses a door),
-        # or the correct room (if it's either empty or has the same type of piece as me
-
-        targets = []
-        # We can only enter a room if it's either empty and we go to the bottom, or it already has the correct type at the bottom and we go to the top
-
-        taken_in_room = [state.piece_at(room_pos) for room_pos in state.target_rooms[piece] if room_pos != pos]
-        taken_in_room = [taken for taken in taken_in_room if taken is not None]
-
-        if all((piece == normal_piece for piece in taken_in_room)):
-            open_in_room = [room_pos for room_pos in state.target_rooms[piece] if room_pos not in state.state_set]
-            #print('BB',open_in_room)
-            if len(open_in_room) >= 1:
-                #There's an open spot, but we can only take it if all the others in that position are of the right piece
-                targets.append((max(open_in_room), 1))
-
-                #print('xx')
-        
-        if pos not in state.hallway:
-            targets.extend(state.to_hallway_moves)
-
-
-        for target, preference in targets:
-
-            moves.append((piece, target, preference))
-
-    moves.sort( key= lambda item: item[0])
-    moves.sort( key= lambda item: item[2], reverse=True)
 
     #if len(solution) == 22:
     #    print(state)
             
-    for piece, target, preference in moves:
+    for new_state, score in state.neighbours():
         ##HAX
 
         #if len(solution)-1 < len(actual_path):
@@ -308,24 +348,9 @@ def solve(cls, state, last_moved, solution):
         #        continue
         ##
         #print(piece,target)
-        pos = state.state[piece]
-        score = state.path(piece, pos, target)
-        if score is None:
-            continue
-
-        # This is where we're moving
-        #if state.state in previous_states:
-        #    continue
-        #previous_states[state.state] = (len(previous_states), total_score+score)
-
-        # make a new target state
-        new_state = list(state.state[::])
-        new_state[piece] = target
-        new_state = cls(new_state)
-        #print(piece, target, preference)
 
 
-        new_cost, new_solution = solve(cls, new_state, piece, solution + [(new_state, score)])
+        new_cost, new_solution = solve_dfs(new_state, None, solution + [(new_state, score)])
         if new_cost is None:
             continue
         #print('AAA')
@@ -346,6 +371,45 @@ def solve(cls, state, last_moved, solution):
 
     return best_cost, best_solution
 
+def solve_bfs(start):
+    frontier = []
+    heapq.heappush(frontier, (0, start))
+    came_from = {}
+    cost_so_far = {}
+    came_from[start] = None
+    cost_so_far[start] = 0
+    final_state = start.__class__(start.final)
+
+    while frontier:
+        s, current = heapq.heappop(frontier)
+
+        if current == final_state:
+            print('Done')
+            break
+
+        for next_state, cost in current.neighbours():
+            new_cost = cost_so_far[current] + cost
+            if next_state not in cost_so_far or new_cost < cost_so_far[next_state]:
+                cost_so_far[next_state] = new_cost
+                priority = new_cost + heuristic(final_state, next_state)
+                #print(priority, next_state)
+                heapq.heappush(frontier, (priority, next_state))
+                came_from[next_state] = current
+                               
+    # reconstruct the path
+    current = final_state
+
+    path = []
+    cost = cost_so_far[final_state]
+    while current != start:
+        #cost += self.grid[current]
+        path.append(current)
+        current = came_from[current]
+    path.append(start)
+    path.reverse()
+    return cost, path
+
+            
 
 with open(sys.argv[1], "r") as file:
     lines = file.readlines()
@@ -354,12 +418,11 @@ rooms = Rooms.from_lines(lines)
 print(rooms)
 
 if 0:
-    cost, solution = solve(Rooms, rooms, None, [(rooms,0)])
+    #cost, solution = solve_dfs(rooms, None, [(rooms,0)])
+    cost, solution = solve_bfs(rooms)
     print(cost)
     total = 0
-    for step, cost in solution:
-        total += cost
-        print(f'{cost=} {total=}')
+    for step in solution:
         print(step)
         print()
     raise SystemExit
@@ -374,13 +437,12 @@ rooms = PartTwo.from_lines(lines)
 print(rooms)
 all_time = {}
 
-cost, solution = solve(PartTwo, rooms,None, [(rooms,0)])
+cost, solution = solve_bfs(rooms)
 
 print(cost)
 total = 0
-for step, cost in solution:
+for step in solution:
     total += cost
-    print(f'{cost=} {total=}')
     print(step)
     print()
 raise SystemExit
