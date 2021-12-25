@@ -208,6 +208,8 @@ best = 2 ** 32
 
 all_time = {}
 
+actual_path=[(3,10),(0,0),(1,9),(1,7),(0,1), (2,39), (2,28), (1, 5), (3, 3), (1,48), (1, 37), (1,26), (2,17), (0,9), (3,52), (1,15), (3,41), (3, 30), (0,35), (0, 24)]
+
 def solve(cls, state, last_moved, solution):
     global best
     # Let's try looping over the possible moves we can take. We won't move the same piece as last time,
@@ -215,15 +217,21 @@ def solve(cls, state, last_moved, solution):
 
     #if state.state in previous_states:
     #    return
+    #if(len(solution) > 12):
+    #    print(len(solution))
+    #    print(solution[-1])
 
     if state.state in all_time:
         return all_time[state.state]
 
     if state.state == state.final:
         total = 0
+        print ('got solution')
         for step, cost in solution:
             total += cost
-            #print(f'{cost=} {total=}')
+        if total < best:
+            print(f'{total=}')
+            best = total
             #print(step)
             #print('*'*80)
         return 0, []
@@ -231,16 +239,13 @@ def solve(cls, state, last_moved, solution):
     best_solution = None
     moves = []
     for piece in range(len(state.state)):
-        if piece == last_moved:
-            continue
-
         pos = state.state[piece]
+
 
         # Firstly, we can only move this piece if it's not trapped
 
         try:
             if state.above[pos] & state.state_set:
-                #print('skip above',piece)
                 continue
         except KeyError:
             pass
@@ -248,12 +253,11 @@ def solve(cls, state, last_moved, solution):
 
         # Then if we're in the right room and all the things below us are also right, we cannot move
 
-        normal_piece = piece >> (state.levels-1)
+        normal_piece = piece // (state.levels)
 
         if pos in state.target_rooms[piece]:
             #below = {pos + (i+1)*11 for i in range(state.levels - pos//11)}
             if all(state.piece_at(below_pos) == normal_piece for below_pos in state.below[pos]):
-                #print('skip below',piece)
                 continue
 
 
@@ -268,13 +272,14 @@ def solve(cls, state, last_moved, solution):
 
         taken_in_room = [state.piece_at(room_pos) for room_pos in state.target_rooms[piece] if room_pos != pos]
         taken_in_room = [taken for taken in taken_in_room if taken is not None]
-        #print('AA',piece, taken_in_room)
+
         if all((piece == normal_piece for piece in taken_in_room)):
             open_in_room = [room_pos for room_pos in state.target_rooms[piece] if room_pos not in state.state_set]
             #print('BB',open_in_room)
             if len(open_in_room) >= 1:
                 #There's an open spot, but we can only take it if all the others in that position are of the right piece
                 targets.append((max(open_in_room), 1))
+
                 #print('xx')
         
         if pos not in state.hallway:
@@ -288,7 +293,21 @@ def solve(cls, state, last_moved, solution):
     moves.sort( key= lambda item: item[0])
     moves.sort( key= lambda item: item[2], reverse=True)
 
+    #if len(solution) == 22:
+    #    print(state)
+            
     for piece, target, preference in moves:
+        ##HAX
+
+        #if len(solution)-1 < len(actual_path):
+        #    actual_normal_piece, actual_target = actual_path[len(solution)-1]
+        #    normal_piece = piece // (state.levels)
+        #    if len(solution) == 1:
+        #        print(piece, normal_piece, target, actual_normal_piece, actual_target)
+        #    if normal_piece != actual_normal_piece or target != actual_target:
+        #        continue
+        ##
+        #print(piece,target)
         pos = state.state[piece]
         score = state.path(piece, pos, target)
         if score is None:
@@ -304,7 +323,6 @@ def solve(cls, state, last_moved, solution):
         new_state[piece] = target
         new_state = cls(new_state)
         #print(piece, target, preference)
-        #print(new_state)
 
 
         new_cost, new_solution = solve(cls, new_state, piece, solution + [(new_state, score)])
@@ -321,6 +339,7 @@ def solve(cls, state, last_moved, solution):
 
 
     if best_cost is None:
+        #print(len(solution))
         return None, None
 
     all_time[state.state] = best_cost, best_solution
@@ -334,7 +353,7 @@ with open(sys.argv[1], "r") as file:
 rooms = Rooms.from_lines(lines)
 print(rooms)
 
-if 1:
+if 0:
     cost, solution = solve(Rooms, rooms, None, [(rooms,0)])
     print(cost)
     total = 0
@@ -355,9 +374,17 @@ rooms = PartTwo.from_lines(lines)
 print(rooms)
 all_time = {}
 
-for solution in solve(PartTwo, rooms,None, [(rooms,0)]):
-    print(best)
-    pass
+cost, solution = solve(PartTwo, rooms,None, [(rooms,0)])
+
+print(cost)
+total = 0
+for step, cost in solution:
+    total += cost
+    print(f'{cost=} {total=}')
+    print(step)
+    print()
+raise SystemExit
+
 
 print(best)
 print(rooms)
