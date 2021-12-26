@@ -8,7 +8,7 @@ class Cucumber:
 
     def move(self, grid):
         new_pos = ((self.pos[0] + self.dir[0]) % grid.width, (self.pos[1] + self.dir[1]) % grid.height)
-        if new_pos in grid.full_grid:
+        if new_pos in grid.east_grid or new_pos in grid.south_grid:
             return 0
         self.pos = new_pos
         return 1
@@ -35,7 +35,6 @@ class Grid:
 
         self.east_grid = {cuke.pos for cuke in self.easters}
         self.south_grid = {cuke.pos for cuke in self.southers}
-        self.full_grid = self.east_grid | self.south_grid
 
     def __repr__(self):
         out = []
@@ -58,13 +57,11 @@ class Grid:
             num_stepped += cuke.move(self)
 
         self.east_grid = {cuke.pos for cuke in self.easters}
-        self.full_grid = self.east_grid | self.south_grid
         
         for cuke in self.southers:
             num_stepped += cuke.move(self)
 
         self.south_grid = {cuke.pos for cuke in self.southers}
-        self.full_grid = self.east_grid | self.south_grid
 
         return num_stepped
 
