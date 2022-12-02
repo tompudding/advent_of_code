@@ -21,22 +21,16 @@ print(score)
 
 #for part 2 we can construct the required move from the results table
 
+translate = {0 : 'X', 3 : 'Y', 6 : 'Z'}
 moves = {}
 
 for theirs, table in results.items():
-    moves[theirs] = {}
-    for ours, result in table.items():
-        if result == 0:
-            moves[theirs]['X'] = ours
-        elif result == 3:
-            moves[theirs]['Y'] = ours
-        else:
-            moves[theirs]['Z'] = ours
+    moves[theirs] = {translate[result] : ours for ours, result in table.items()}
             
 score = 0
 for theirs, result in data:
-    our_move = moves[theirs][result]
-    score += piece_score[our_move] + results[theirs][our_move]
+    ours = moves[theirs][result]
+    score += piece_score[ours] + results[theirs][ours]
     
 
 print(score)
