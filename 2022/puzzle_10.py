@@ -43,8 +43,7 @@ class Cpu:
         #print(f'{self.x=} {self.cycle=}')
         current_x = self.cycle % 40
         end = '\n' if current_x == 39 else ''
-        char = '.'
-        char = '#' if abs(self.x - current_x) <= 1 else '.'
+        char = '█' if abs(self.x - current_x) <= 1 else ' '
         print(char,end=end)
 
 commands = []
