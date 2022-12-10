@@ -25,12 +25,27 @@ class Cpu:
         self.samples = []
 
     def run(self,code):
-        for instruction in code:
-            self.cycle += instruction.cycles
-            while self.cycle >= self.next_sample:
-                self.samples.append(self.x*self.next_sample)
-                self.next_sample += 40
-            instruction.perform(self)
+        ins = 0
+        while ins < len(code):
+            current = code[ins]
+            end = self.cycle + current.cycles
+            while self.cycle < end:
+                self.output()
+                self.cycle += 1
+                if self.cycle == self.next_sample:
+                    self.samples.append(self.x * self.cycle)
+                    self.next_sample += 40
+
+            current.perform(self)
+            ins += 1
+            
+    def output(self):
+        #print(f'{self.x=} {self.cycle=}')
+        current_x = self.cycle % 40
+        end = '\n' if current_x == 39 else ''
+        char = '.'
+        char = '#' if abs(self.x - current_x) <= 1 else '.'
+        print(char,end=end)
 
 commands = []
 with open(sys.argv[1], 'r') as file:
@@ -44,8 +59,9 @@ with open(sys.argv[1], 'r') as file:
         else:
             raise SystemExit(f'Unexpected Command {line}')
 
-# Part 1, let's simulate
+# let's simulate
 cpu = Cpu()
+print('Part 2:')
 cpu.run(commands)
-print(sum(cpu.samples))
+print(f'Part 1 = {sum(cpu.samples)}')
 
