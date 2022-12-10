@@ -21,7 +21,7 @@ class Chain:
         for i in range(1, len(self.rope)):
             self.rope[i] = self.update(self.rope[i-1], self.rope[i])
 
-        self.tails.add(tuple(self.rope[-1]))
+        self.tails.add(self.rope[-1])
 
     @staticmethod
     def update(head, tail):
