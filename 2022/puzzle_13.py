@@ -1,4 +1,5 @@
 import sys
+import ast
 
 def cmp(a, b):
     if isinstance(a, list) and isinstance(b, list):
@@ -41,7 +42,7 @@ with open(sys.argv[1], 'r') as file:
             pairs.append(current)
             current = []
             continue
-        current.append(eval(line))
+        current.append(ast.literal_eval(line))
 
 if current:
     pairs.append(current)
