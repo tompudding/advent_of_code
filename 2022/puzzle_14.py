@@ -9,6 +9,7 @@ class World:
     sand = 'o'
     sand_start = (500, 0)
     sand_steps = ((0, 1), (-1,1), (1,1))
+    
     def __init__(self, floor=False):
         self.grid = {}
         self.bottom_left = None
@@ -19,6 +20,7 @@ class World:
         self.has_floor = floor
         self.floor = 0 if self.has_floor else None
         self.building = True
+        self.starts = [self.sand_start]
                           
 
     def add(self, pos, item):
@@ -78,31 +80,28 @@ class World:
         return pos[1] < self.bottom_left[1] or pos[1] >= self.top_right[0]
 
     def step(self):
-        #Create a sand at the
-        sand = self.sand_start
-        in_abyss = False
-
-        while sand:
+        while self.starts:
+            pos = self.starts[-1]
             for diff in self.sand_steps:
-                new_pos = add(sand, diff)
+                new_pos = add(pos, diff)
 
                 if new_pos in self.grid or self.has_floor and new_pos[1] >= self.floor:
                     continue
                 if self.in_abyss(new_pos):
                     return None
 
-                sand = new_pos
+                pos = new_pos
+                self.starts.append(pos)
                 break
             else:
                 #If we didn't break it means we couldn't place the sand, and the current position is final
-                if sand == self.sand_start:
-                    return None
-                self.add(sand, self.sand)
-                return True
+                if pos == self.starts[-1]:
+                    self.starts.pop(-1)
 
-        if in_abyss:
-            return None
-    
+                if not self.starts:
+                    return None
+                self.add(pos, self.sand)
+                return True
 
 world = World()
 rocks = []
