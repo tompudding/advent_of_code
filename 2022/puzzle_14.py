@@ -12,10 +12,10 @@ class World:
     
     def __init__(self, floor=False):
         self.grid = {}
-        self.bottom_left = None
-        self.top_right = None
-        self.bottom_left = list(self.sand_start)
-        self.top_right = [self.sand_start[0]+1, self.sand_start[1]+1]
+        self.top_left = None
+        self.bottom_right = None
+        self.top_left = list(self.sand_start)
+        self.bottom_right = [self.sand_start[0]+1, self.sand_start[1]+1]
         self.grid = {self.sand_start : self.sand}
         self.has_floor = floor
         self.floor = 0 if self.has_floor else None
@@ -24,19 +24,19 @@ class World:
                           
 
     def add(self, pos, item):
-        if pos[0] < self.bottom_left[0]:
-            self.bottom_left[0] = pos[0]
-        if pos[1] < self.bottom_left[1]:
-            self.bottom_left[1] = pos[1]
-        if pos[0] >= self.top_right[0]:
-            self.top_right[0] = pos[0]+1
-        if pos[1] >= self.top_right[1]:
-            self.top_right[1] = pos[1] + 1
+        if pos[0] < self.top_left[0]:
+            self.top_left[0] = pos[0]
+        if pos[1] < self.top_left[1]:
+            self.top_left[1] = pos[1]
+        if pos[0] >= self.bottom_right[0]:
+            self.bottom_right[0] = pos[0]+1
+        if pos[1] >= self.bottom_right[1]:
+            self.bottom_right[1] = pos[1] + 1
 
         #we only change the floor position during building
         if self.building and self.has_floor and pos[1] +2 > self.floor:
             self.floor = pos[1] + 2
-            self.top_right[1] = max(self.top_right[1], self.floor+1)
+            self.bottom_right[1] = max(self.bottom_right[1], self.floor+1)
 
         self.grid[pos] = item
 
@@ -62,9 +62,9 @@ class World:
     def __repr__(self):
         lines = []
 
-        for row in range(self.bottom_left[1], self.top_right[1]):
+        for row in range(self.top_left[1], self.bottom_right[1]):
             line = []
-            for col in range(self.bottom_left[0], self.top_right[0]):
+            for col in range(self.top_left[0], self.bottom_right[0]):
                 try:
                     item = self.grid[(col, row)]
                 except KeyError:
@@ -77,7 +77,7 @@ class World:
     def in_abyss(self, pos):
         if self.has_floor and pos == self.sand_start:
             return True
-        return pos[1] < self.bottom_left[1] or pos[1] >= self.top_right[0]
+        return pos[1] < self.top_left[1] or pos[1] >= self.bottom_right[0]
 
     def step(self):
         while self.starts:
