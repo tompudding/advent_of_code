@@ -16,7 +16,7 @@ class Valve:
         self.bit = (1 << self.index) if score != 0 else 0
 
     def set_neighbour_indices(self):
-        self.neighbours = [names_to_index[name] for name in self.neighbour_names]
+        self.neighbours = [(names_to_index[name], 1) for name in self.neighbour_names]
 
     def __repr__(self):
         return f'Valve {self.name} has flow rate={self.flow_rate}; tunnels lead to valves {self.neighbours}'
@@ -55,12 +55,11 @@ with open(sys.argv[1], 'r') as file:
         # We'all add another fake node for each node with a non-zero flow rate, that represents having turned on the valve at that point
 
 
-
 #Once they've all been updated we can set the neighbours
 for valve in valves:
     valve.set_neighbour_indices()
 
-print(valves[3].neighbours)
+# Now we can collapse that graph by building a new one with
 
 start = (names_to_index['AA'],0,0)
 frontier = []
@@ -77,17 +76,18 @@ while frontier:
     current_valve = valves[current]
     score = score_so_far[(current, length, turned_on)]
 
-    if length >= max_length:
-        continue
-
-    for next_index in current_valve.neighbours:
+    for next_index, distance in current_valve.neighbours:
         next_valve = valves[next_index]
         if next_valve.bit & turned_on:
             # We can't turn on the same thing twice
             continue
 
-        new_node = (next_index, length + 1, turned_on | next_valve.bit)
-        new_score = score + ((max_length - (length+1)) * next_valve.score)
+        new_length = length + distance
+        if new_length >= max_length:
+            continue
+
+        new_node = (next_index, length + distance, turned_on | next_valve.bit)
+        new_score = score + ((max_length - (length+distance)) * next_valve.score)
 
         #print(names[current], names[next_index], new_score)
 
