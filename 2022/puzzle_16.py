@@ -1,6 +1,8 @@
 import sys
 import re
 import heapq
+import itertools
+import time
 
 names = []
 valves = []
@@ -22,6 +24,92 @@ class Valve:
 
     def __repr__(self):
         return f'Valve {self.name} has flow rate={self.flow_rate}; tunnels lead to valves {self.neighbours}'
+
+def find_best_pressure(max_length, can_turn_on):
+    start = (names_to_index['AA'],0,0)
+    frontier = []
+    heapq.heappush(frontier, (0, start))
+    #came_from = {start : None}
+
+    score_so_far = {start : 0}
+
+    best = 0
+    max_turned_on = can_turn_on
+
+    while frontier:
+        s, node = heapq.heappop(frontier)
+        current, length, turned_on = node
+        current_valve = valves[current]
+        score = score_so_far[node]
+
+        if turned_on == max_turned_on:
+           #we're done
+           continue
+
+        for next_index, distance in current_valve.neighbours:
+            next_valve = valves[next_index]
+            if next_valve.score:
+                if next_valve.bit & turned_on or 0 == (next_valve.bit & can_turn_on):
+                    # We can't turn on the same thing twice
+                    continue
+
+            new_length = length + distance
+            if new_length > max_length:
+                continue
+
+            new_node = (next_index, new_length, turned_on | next_valve.bit)
+            new_score = score + ((max_length - new_length) * next_valve.score)
+
+            if new_score > best:
+                best = new_score
+                best_node = new_node
+
+            if new_node  not in score_so_far or new_score > score_so_far[new_node]:
+                score_so_far[new_node] = new_score
+                priority = -new_score
+
+                heapq.heappush(frontier, (priority, new_node))
+                #came_from[new_node] = node
+
+    #print(best)
+    return best
+
+    if 0: #Print the path
+        current = best_node
+
+        path = []
+        minute = 0
+        while current != start:
+            index, length, turned_on = current
+            path.append((index, names[index]))
+            #print(names[index], length, '%x' % turned_on)
+            current = came_from[current]
+        path.append((names_to_index['AA'], 'AA'))
+        path.reverse()
+
+        pressure = 0
+        score = 0
+        length = 0
+        for i, (index, name) in enumerate(path):
+            valve = valves[index]
+            if i > 0:
+                last_index, last_name = path[i-1]
+                last_valve = valves[last_index]
+
+                for n,d in last_valve.neighbours:
+                    if n == index:
+                        distance = d
+                        break
+                else:
+                    raise Jawn()
+                length += distance
+
+                score += valve.score * (max_length - length)
+            if 0 == valve.score:
+                print(name, length)
+            else:
+                print(f'{name} releases {valve.score} * {max_length - length} == {valve.score * (max_length - length)} cum={score}')
+
 
 with open(sys.argv[1], 'r') as file:
     for line in file:
@@ -92,18 +180,20 @@ for i, start_valve in enumerate(useful_valves):
 
     for j in range(i+1, len(useful_valves)):
         other_valve = useful_valves[j]
-        if other_valve.name == 'AA' and other_valve.flow_rate == 0:
-            continue
+
         cost = cost_so_far[other_valve.index]
-        try:
-            shortest_routes[start_valve.index].append( (other_valve.index,cost))
-        except KeyError:
-            shortest_routes[start_valve.index] = [(other_valve.index,cost)]
 
         try:
             shortest_routes[other_valve.index].append( (start_valve.index,cost))
         except KeyError:
             shortest_routes[other_valve.index] = [(start_valve.index,cost)]
+        if other_valve.name == 'AA' and other_valve.flow_rate == 0:
+            continue
+        try:
+            shortest_routes[start_valve.index].append( (other_valve.index,cost))
+        except KeyError:
+            shortest_routes[start_valve.index] = [(other_valve.index,cost)]
+
 
 
 for valve in valves:
@@ -124,134 +214,68 @@ for valve in valves:
 
 print('collapsed graph')
 
-start = (names_to_index['AA'],0,0)
-frontier = []
-heapq.heappush(frontier, (0, start))
-came_from = {start : None}
+max_turned_on = 0
+for valve in valves:
+    max_turned_on |= valve.bit
 
-score_so_far = {start : 0}
+score = find_best_pressure(30, max_turned_on)
+print(score)
 
-max_length = 30
+#For part 2 we want to try all the partitions of the valves that can be turned on, there should't be too many
+pressure_valves = [valve for valve in valves if valve.bit != 0]
 
+scores = {max_turned_on : find_best_pressure(26, max_turned_on)}
+max_score = scores[max_turned_on]
 best = 0
 
-while frontier:
-    s, node = heapq.heappop(frontier)
-    current, length, turned_on = node
-    current_valve = valves[current]
-    score = score_so_far[node]
+bitfields = [i for i in range(1<<len(pressure_valves))]
+last_print = 0
 
-    for next_index, distance in current_valve.neighbours:
-        next_valve = valves[next_index]
-        if next_valve.bit & turned_on:
-            # We can't turn on the same thing twice
-            continue
+def count_bits(n):
+    num = sum( ((n>>i)&1) for i in range(len(pressure_valves)))
 
-        new_length = length + distance
-        if new_length >= max_length:
-            continue
+    return abs(num - len(pressure_valves)/2)
 
-        new_node = (next_index, new_length, turned_on | next_valve.bit)
-        new_score = score + ((max_length - new_length) * next_valve.score)
+bitfields.sort(key=count_bits)
 
-        if new_score > best:
-            best = score
-            best_node = new_node
 
-        if new_node  not in score_so_far or new_score > score_so_far[new_node]:
-            score_so_far[new_node] = new_score
-            priority = -new_score
+for pos, bitfield in enumerate(bitfields):
 
-            heapq.heappush(frontier, (priority, new_node))
-            came_from[new_node] = node
+    total_score = 0
 
-print(best)
+    done = (pos*100)//len(bitfields)
+    if done != last_print:
+        print(f'{done}%')
+        last_print = done
 
-if 0: #Print the path
-    current = best_node
+    can_turn_on = 0
+    for i in range(len(pressure_valves)):
+        if bitfield & (1 << i):
+            can_turn_on |= pressure_valves[i].bit
 
-    path = []
-    minute = 0
-    while current != start:
-        index, length, turned_on = current
-        path.append((index, names[index]))
-        #print(names[index], length, '%x' % turned_on)
-        current = came_from[current]
-    path.append((names_to_index['AA'], 'AA'))
-    path.reverse()
+    for bf in can_turn_on, (max_turned_on ^ can_turn_on):
+        try:
+            score = scores[bf]
+        except KeyError:
+            score = find_best_pressure(26, bf)
+            scores[bf] = score
 
-    pressure = 0
-    score = 0
-    length = 0
-    for i, (index, name) in enumerate(path):
-        valve = valves[index]
-        if i > 0:
-            last_index, last_name = path[i-1]
-            last_valve = valves[last_index]
+        if bf == can_turn_on and score + max_score < best:
+            # We don't even need to bother with the other one here
+            scores[max_turned_on ^ can_turn_on] = 0
+            break
 
-            for n,d in last_valve.neighbours:
-                if n == index:
-                    distance = d
-                    break
+        total_score += score
+
+    if total_score > best:
+        best = total_score
+        print(f'{best=} a={can_turn_on:x} b={max_turned_on ^ can_turn_on:x} {pos=}')
+        for i in range(len(valves)):
+            if not valves[i].score:
+                continue
+            if can_turn_on & valves[i].bit:
+                print('ME=',valves[i].name)
             else:
-                raise Jawn()
-            length += distance
+                print('EL=',valves[i].name)
 
-            score += valve.score * (max_length - length)
-        if 0 == valve.score:
-            print(name, length)
-        else:
-            print(f'{name} releases {valve.score} * {max_length - length} == {valve.score * (max_length - length)} cum={score}')
-
-#print(score)
-
-# For part 2 our state is a pair of positions and the turned on mask. Is that too much state?
-
-# start = (names_to_index['AA'],names_to_index['AA'],0,0)
-# frontier = []
-# heapq.heappush(frontier, (0, start))
-# came_from = {start : None}
-
-# score_so_far = {start : 0}
-
-# max_length = 30
-
-# best = 0
-
-# while frontier:
-#     s, node = heapq.heappop(frontier)
-#     current, elephant, length, turned_on = node
-#     current_valve = valves[current]
-#     current_elephant_valve = valves[current_elephant]
-#     score = score_so_far[node]
-
-#     for next_index, distance in current_valve.neighbours:
-#         for next_elephant, elephant_distance in current_elephant_valve.neighbours:
-
-#             next_valve = valves[next_index]
-#             if next_valve.bit & turned_on:
-#                 # We can't turn on the same thing twice
-#                 continue
-#             next_elephant_valve = valves[next_elephant]
-#             if next_elephant_valve.bit & turned_on or next_elephant_valve is next_valve:
-#                 continue
-
-#             new_length = length + distance
-#             if new_length >= max_length:
-#                 continue
-
-#         new_node = (next_index, new_length, turned_on | next_valve.bit)
-#         new_score = score + ((max_length - new_length) * next_valve.score)
-
-#         if new_score > best:
-#             best = score
-#             best_node = new_node
-
-#         if new_node  not in score_so_far or new_score > score_so_far[new_node]:
-#             score_so_far[new_node] = new_score
-#             priority = -new_score
-
-#             heapq.heappush(frontier, (priority, new_node))
-#             came_from[new_node] = node
-
-# print(best)
+print(best, time.time())
