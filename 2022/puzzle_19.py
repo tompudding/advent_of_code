@@ -20,6 +20,9 @@ class Resources:
             self.geodes + other.geodes,
         )
 
+    def copy(self):
+        return Resources(*self.resources)
+
     # def __hash__(self):
     #     return hash(self.resources)
 
@@ -62,6 +65,9 @@ class Robots:
     # def __lt__(self, other):
     #     return self.robots < other.robots
 
+    def copy(self):
+        return Robots(*self.robots)
+
     def __repr__(self):
         return f"ore_robots={self.ore} clay_robots={self.clay} obsidian_robots={self.obsidian} geodes_robots={self.geode}"
 
@@ -74,6 +80,11 @@ class Recipe:
         self.builds = builds
 
         self.required = [self.ore, self.clay, self.obsidian, 0]
+
+    def can_build(self, resources, robots):
+        return (
+            resources.ore >= self.ore and resources.clay >= self.clay and resources.obsidian >= self.obsidian
+        )
 
     def build(self, resources, robots):
         # Check if we have enough. Note that geodes aren't ever used in recipes
@@ -132,6 +143,27 @@ class State:
 
         print(self.blueprint.most_demanding)
 
+    def simulate(self, time, resources, robots):
+        # We see what we could win if we built everything we could build at every step. It's an upper bound
+        # that will help us prune hopeless branches
+
+        for t in range(time):
+            # The current robots generate extra stuff
+
+            resources += robots.generate()
+
+            if self.blueprint.recipes[0].can_build(resources, robots):
+                robots.ore += 1
+            if self.blueprint.recipes[1].can_build(resources, robots):
+                robots.clay += 1
+            if self.blueprint.recipes[2].can_build(resources, robots):
+                robots.obsidian += 1
+
+            if self.blueprint.recipes[3].can_build(resources, robots):
+                resources, robots = self.blueprint.recipes[3].build(resources, robots)
+
+        return resources.geodes
+
     def best_geodes(self, time, resources, robots, choices):
 
         if time == 0:
@@ -143,22 +175,11 @@ class State:
 
         # A very basic prune is to stop if we don't have enough time to make enough geodes so that we'll be the best
         # Assume that we can generate 1 obsidian robot per round
-        max_geodes = resources.geodes
-        obs = resources.obsidian
-        num_obs_rob = robots.obsidian
-        num_geo_rob = robots.geode
-        for t in range(time):
-            obs += num_obs_rob
-            if obs >= self.blueprint.geode_robot.obsidian:
-                obs -= self.blueprint.geode_robot.obsidian
-                num_geo_rob += 1
 
-            max_geodes += num_geo_rob
-            # This isn't quite accurate but whatever
-            num_obs_rob += 1
+        max_geodes = self.simulate(time, resources.copy(), robots.copy())
 
-            if max_geodes and max_geodes >= self.best:
-                break
+        if max_geodes < self.best or max_geodes == 0:
+            return resources.geodes, choices
 
         if max_geodes < self.best:
             return resources.geodes, choices
@@ -178,6 +199,10 @@ class State:
         # Firstly if we can build a geode we should
 
         options = [3, 2, 1, 0, None]
+
+        # I got this from reddit and I don't understand it at all_items
+        # if self.blueprint.recipes[2].can_build(resources, robots):
+        #    options = [3, 2, None]
 
         # if resources.obsidian >= self.blueprint.geode_robot.obsidian:
         #     # We have enough obsidian, we need ore. Options then are an ore robot or waiting
@@ -261,9 +286,12 @@ for i, blueprint in enumerate(blueprints):
     print(geodes)
     print(choices)
     quality += (i + 1) * geodes
+    if i > 2:
+        break
     # break
 
 print(quality)
+raise Bobbins
 
 total = 1
 for blueprint in blueprints[:3]:
