@@ -152,8 +152,12 @@ while expression.op:
     op, lhs, rhs = expression.op, expression.lhs, expression.rhs
     print(f"{expression} == {accumulator}")
     if op == equal:
-        accumulator = rhs
-        expression = lhs
+        if isinstance(lhs, Expression):
+            accumulator = rhs
+            expression = lhs
+        else:
+            accumulator = lhs
+            expression = rhs
         continue
 
     # One of the lhs or rhs should be an integer
@@ -167,9 +171,11 @@ while expression.op:
             accumulator = inverse[op](accumulator, lhs)
             expression = rhs
         else:
-            # The non-associative ones are slightly different
+            # The non-commutative ones are slightly different
             accumulator = op(lhs, accumulator)
             expression = rhs
+    else:
+        print("wat", lhs, rhs)
 
 
 print(accumulator)
