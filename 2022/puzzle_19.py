@@ -200,26 +200,9 @@ class State:
 
         options = [3, 2, 1, 0, None]
 
-        # I got this from reddit and I don't understand it at all_items
-        # if self.blueprint.recipes[2].can_build(resources, robots):
-        #    options = [3, 2, None]
-
-        # if resources.obsidian >= self.blueprint.geode_robot.obsidian:
-        #     # We have enough obsidian, we need ore. Options then are an ore robot or waiting
-        #     options.extend([0, None])
-        # else:
-        #     # We don't have enough obsidian now.
-        #     options.append(2)
-        #     # Do we need clay to make an obsidian?
-        #     if 1 or resources.clay < self.blueprint.obsidian_robot.clay:
-        #         options.append(1)
-        #     if (
-        #         1
-        #         or resources.ore < self.blueprint.obsidian_robot.ore
-        #         or resources.ore < self.blueprint.clay_robot.ore
-        #     ):
-        #         options.append(0)
-        #     options.append(None)
+        # I got this from reddit and I don't understand it at all
+        if self.blueprint.recipes[2].can_build(resources, robots):
+            options = [3, 2, None]
 
         for choice in options:
 
@@ -286,12 +269,9 @@ for i, blueprint in enumerate(blueprints):
     print(geodes)
     print(choices)
     quality += (i + 1) * geodes
-    if i > 2:
-        break
     # break
 
 print(quality)
-raise Bobbins
 
 total = 1
 for blueprint in blueprints[:3]:
