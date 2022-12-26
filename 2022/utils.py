@@ -94,7 +94,7 @@ class Point3D(object):
         return math.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
 
 
-@total_ordering
+@functools.total_ordering
 class Point2D(object):
     def __init__(self, x: float = 0, y: float = 0):
         self.x = x
@@ -104,7 +104,7 @@ class Point2D(object):
     def __add__(self, other_point):
         return Point2D(self.x + other_point.x, self.y + other_point.y)
 
-    def __sub__(self, other_point: Point2D):
+    def __sub__(self, other_point):
         return Point2D(self.x - other_point.x, self.y - other_point.y)
 
     def __mul__(self, other_point):
@@ -131,7 +131,7 @@ class Point2D(object):
     def __setitem__(self, index: int, value: float):
         setattr(self, ("x", "y")[index], value)
 
-    def __iter__(self)
+    def __iter__(self):
         return self
 
     def __repr__(self):
