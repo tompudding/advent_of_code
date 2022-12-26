@@ -41,12 +41,12 @@ class Grid:
                 if first_col is None:
                     first_col = col
                 else:
-                    self.neighbours[(col, row)][Facing.LEFT] = (col - 1, row)
+                    self.neighbours[(col, row)][Facing.LEFT] = ((col - 1, row), 0)
                 last_col = col
-                self.neighbours[(col, row)][Facing.RIGHT] = (col + 1, row)
+                self.neighbours[(col, row)][Facing.RIGHT] = ((col + 1, row), 0)
             if wrap:
-                self.neighbours[(last_col, row)][Facing.RIGHT] = (first_col, row)
-                self.neighbours[(first_col, row)][Facing.LEFT] = (last_col, row)
+                self.neighbours[(last_col, row)][Facing.RIGHT] = ((first_col, row), 0)
+                self.neighbours[(first_col, row)][Facing.LEFT] = ((last_col, row), 0)
             else:
                 del self.neighbours[(last_col, row)][Facing.RIGHT]
 
@@ -58,22 +58,25 @@ class Grid:
                 if first_row is None:
                     first_row = row
                 else:
-                    self.neighbours[(col, row)][Facing.UP] = (col, row - 1)
+                    self.neighbours[(col, row)][Facing.UP] = ((col, row - 1), 0)
                 last_row = row
 
-                self.neighbours[(col, row)][Facing.DOWN] = (col, row + 1)
+                self.neighbours[(col, row)][Facing.DOWN] = ((col, row + 1), 0)
             if wrap:
-                self.neighbours[(col, last_row)][Facing.DOWN] = (col, first_row)
-                self.neighbours[(col, first_row)][Facing.UP] = (col, last_row)
+                self.neighbours[(col, last_row)][Facing.DOWN] = ((col, first_row), 0)
+                self.neighbours[(col, first_row)][Facing.UP] = ((col, last_row), 0)
             else:
                 del self.neighbours[(col, last_row)][Facing.DOWN]
 
     def move(self, num):
         for i in range(num):
-            next = self.neighbours[self.pos][self.facing]
+            next, rot = self.neighbours[self.pos][self.facing]
             if self.grid[next] == "#":
+                print("collide")
                 return
             self.pos = next
+            self.facing = (self.facing - rot) % 4
+            print(f"{i+1} of {num}:", self.pos, self.facing)
 
     def follow(self, path):
         self.facing = 0
@@ -192,7 +195,7 @@ class Face:
     def edge(self, dir):
         # Yield all the points along our edge
         abs_dir = (self.rotation + dir) % 4
-        print(f"{self.face_num=} {self.rotation=} {dir=} edge_abs_dir={abs_dir}")
+        # print(f"{self.face_num=} {self.rotation=} {dir=} edge_abs_dir={abs_dir}")
 
         start = self.edge_starts[abs_dir]
         step = self.edge_steps[abs_dir]
@@ -209,21 +212,26 @@ class Face:
         # For each of our edges, we want to set up the neighbours correctly
         for dir, face in self.neighbours.items():
             num, in_dir = self.face_map[self.face_num][dir]
+            outer = self.edge_dir(dir)
+            rot = (2 + self.rotation - face.rotation + dir - in_dir) % 4
+            # rot = (outer + face.edge_dir(in_dir)) % 4
 
-            print(f"going from {self.face_num} -> {face.face_num} {in_dir=}")
+            print(
+                f"going from {self.face_num} -> {face.face_num} {self.rotation=} {face.rotation=} {dir=} {in_dir=}"
+            )
 
             for edge_point, other_edge_point in zip(self.edge(dir), reversed(list(face.edge(in_dir)))):
                 outer = self.edge_dir(dir)
 
                 try:
-                    if self.cube.neighbours[edge_point][outer] != other_edge_point:
+                    if self.cube.neighbours[edge_point][outer][0] != other_edge_point:
                         print(
                             f"Neighbour of {edge_point} in the direction {outer} is currently {self.cube.neighbours[edge_point][outer]}, but we're trying to set it to {other_edge_point}"
                         )
                         raise Bobbins
                 except KeyError:
                     pass
-                self.cube.neighbours[edge_point][outer] = other_edge_point
+                self.cube.neighbours[edge_point][outer] = (other_edge_point, rot)
 
 
 class CubeGrid(Grid):
@@ -282,7 +290,8 @@ grid.follow(instructions)
 print(1000 * (grid.pos[1] + 1) + 4 * (grid.pos[0] + 1) + grid.facing)
 
 cube_grid = CubeGrid(grid_lines)
-print(cube_grid.neighbours[11, 5])
+# print("should be 3:", cube_grid.neighbours[11, 5][0])
+# print("should be 2:", cube_grid.neighbours[10, 11][1])
+# print("should be 0:", cube_grid.neighbours[12, 10][2])
 cube_grid.follow(instructions)
-print(cube_grid.neighbours[11, 5])
-# print(cube_grid.pos, cube_grid.facing)
+print(1000 * (cube_grid.pos[1] + 1) + 4 * (cube_grid.pos[0] + 1) + cube_grid.facing)
