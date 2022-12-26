@@ -72,11 +72,9 @@ class Grid:
         for i in range(num):
             next, rot = self.neighbours[self.pos][self.facing]
             if self.grid[next] == "#":
-                print("collide")
                 return
             self.pos = next
             self.facing = (self.facing - rot) % 4
-            print(f"{i+1} of {num}:", self.pos, self.facing)
 
     def follow(self, path):
         self.facing = 0
@@ -94,6 +92,9 @@ class Grid:
                 self.facing = (self.facing + 1) % 4
 
             path = path[1:]
+
+    def answer(self):
+        return 1000 * (self.pos[1] + 1) + 4 * (self.pos[0] + 1) + self.facing
 
 
 class Face:
@@ -185,7 +186,6 @@ class Face:
         for dir, (fn, in_dir) in self.face_map[self.face_num].items():
             rel_dir = dir
             if rel_dir in self.neighbours:
-                print(self.face_num, fn, self.neighbours[rel_dir])
                 assert fn == self.neighbours[rel_dir].face_num
                 # raise Bobbins1
                 continue
@@ -195,7 +195,6 @@ class Face:
     def edge(self, dir):
         # Yield all the points along our edge
         abs_dir = (self.rotation + dir) % 4
-        # print(f"{self.face_num=} {self.rotation=} {dir=} edge_abs_dir={abs_dir}")
 
         start = self.edge_starts[abs_dir]
         step = self.edge_steps[abs_dir]
@@ -214,11 +213,6 @@ class Face:
             num, in_dir = self.face_map[self.face_num][dir]
             outer = self.edge_dir(dir)
             rot = (2 + self.rotation - face.rotation + dir - in_dir) % 4
-            # rot = (outer + face.edge_dir(in_dir)) % 4
-
-            print(
-                f"going from {self.face_num} -> {face.face_num} {self.rotation=} {face.rotation=} {dir=} {in_dir=}"
-            )
 
             for edge_point, other_edge_point in zip(self.edge(dir), reversed(list(face.edge(in_dir)))):
                 outer = self.edge_dir(dir)
@@ -261,15 +255,12 @@ class CubeGrid(Grid):
 
         face = faces[0].label(1, rotation=0)
 
-        # print(faces)
         self.faces = {face.face_num: face for face in faces}
-        # print(self.faces)
 
         for face in faces:
             face.fill_out()
         for face in faces:
             face.connect()
-            print(face.top_left, face.face_num, face.rotation)
 
 
 grid_lines = []
@@ -287,11 +278,8 @@ with open(sys.argv[1], "r") as file:
 grid = Grid(grid_lines)
 
 grid.follow(instructions)
-print(1000 * (grid.pos[1] + 1) + 4 * (grid.pos[0] + 1) + grid.facing)
+print(grid.answer())
 
 cube_grid = CubeGrid(grid_lines)
-# print("should be 3:", cube_grid.neighbours[11, 5][0])
-# print("should be 2:", cube_grid.neighbours[10, 11][1])
-# print("should be 0:", cube_grid.neighbours[12, 10][2])
 cube_grid.follow(instructions)
-print(1000 * (cube_grid.pos[1] + 1) + 4 * (cube_grid.pos[0] + 1) + cube_grid.facing)
+print(cube_grid.answer())
