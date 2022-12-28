@@ -30,6 +30,4 @@ with open(sys.argv[1], "r") as file:
 
 crosses = points[0].keys() & points[1].keys()
 print(min(manhattan(p) for p in crosses))
-
-
 print(min(points[0][p] + points[1][p] for p in crosses))
