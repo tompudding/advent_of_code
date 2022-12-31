@@ -8,6 +8,7 @@ class ParameterMode(enum.IntFlag):
 
 class Instruction:
     out_val = None
+
     def __init__(self, cpu, program):
         pos = cpu.pc
         self.cpu = cpu
@@ -29,16 +30,14 @@ class Instruction:
             self.out = self.values[self.out_val]
             assert self.modes[self.out_val - 1] == ParameterMode.POSITION
 
-
     def get_val(self, n):
-        match ParameterMode(self.modes[n]):
-            case ParameterMode.POSITION:
-                return self.program[self.params[n]]
-            case ParameterMode.IMMEDIATE:
-                return self.params[n]
-            case _:
-                raise ValueError('Unrecognised paramater mode')
-
+        mode = ParameterMode(self.modes[n])
+        if mode == ParameterMode.POSITION:
+            return self.program[self.params[n]]
+        elif mode == ParameterMode.IMMEDIATE:
+            return self.params[n]
+        else:
+            raise ValueError("Unrecognised paramater mode")
 
 
 class BinaryInstruction(Instruction):
@@ -62,6 +61,7 @@ class Multiply(BinaryInstruction):
     def op(self, a, b):
         return a * b
 
+
 class Input(Instruction):
     opcode = 3
     num_ints = 2
@@ -70,12 +70,14 @@ class Input(Instruction):
     def operate(self):
         self.program[self.out] = self.cpu.get_input()
 
+
 class Output(Instruction):
     opcode = 4
     num_ints = 2
 
     def operate(self):
         self.cpu.send_output(self.get_val(0))
+
 
 class JEQ(Instruction):
     opcode = 5
@@ -86,6 +88,7 @@ class JEQ(Instruction):
             self.cpu.pc = self.get_val(1)
             return True
 
+
 class JNE(Instruction):
     opcode = 6
     num_ints = 3
@@ -95,20 +98,21 @@ class JNE(Instruction):
             self.cpu.pc = self.get_val(1)
             return True
 
+
 class LT(BinaryInstruction):
     opcode = 7
 
     def op(self, a, b):
-        print(f'lt {a} < {b}')
+        print(f"lt {a} < {b}")
         return 1 if a < b else 0
+
 
 class EQ(BinaryInstruction):
     opcode = 8
 
     def op(self, a, b):
-        print(f'eq {a} == {b}')
+        print(f"eq {a} == {b}")
         return 1 if a == b else 0
-
 
 
 class Halt(Instruction):
@@ -117,6 +121,7 @@ class Halt(Instruction):
 
     def operate(self):
         self.cpu.halt()
+
 
 all_instructions = (Add, Multiply, Input, Output, JEQ, JNE, LT, EQ, Halt)
 
