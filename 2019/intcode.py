@@ -8,6 +8,7 @@ class InputStall(Exception):
 class ParameterMode(enum.IntFlag):
     POSITION = 0
     IMMEDIATE = 1
+    RELATIVE = 2
 
 
 class Instruction:
@@ -31,18 +32,26 @@ class Instruction:
         self.out = None
 
         if self.out_val is not None:
-            # If there's multiple values there's always an output I think? Make sure it's in position mode
+            # If there's multiple values there's always an output I think? Make sure it's in position/relative
+            # mode
             self.out = self.values[self.out_val]
-            assert self.modes[self.out_val - 1] == ParameterMode.POSITION
+            assert self.modes[self.out_val - 1] in [ParameterMode.POSITION, ParameterMode.RELATIVE]
 
     def get_val(self, n):
         mode = ParameterMode(self.modes[n])
         if mode == ParameterMode.POSITION:
-            return self.program[self.params[n]]
+            return self.cpu.get_memory(self.params[n], 1)[0]
         elif mode == ParameterMode.IMMEDIATE:
             return self.params[n]
+        elif mode == ParameterMode.RELATIVE:
+            return self.cpu.get_memory(self.cpu.relative_base + self.params[n], 1)[0]
         else:
             raise ValueError("Unrecognised paramater mode")
+
+    def get_out(self):
+        if self.modes[self.out_val - 1] == ParameterMode.RELATIVE:
+            return self.out + self.cpu.relative_base
+        return self.out
 
     def __repr__(self):
         return f"{self.nemonic:3s} : {self.values=} {self.modes=}"
@@ -53,7 +62,8 @@ class BinaryInstruction(Instruction):
     out_val = 3
 
     def operate(self):
-        self.program[self.out] = self.op(self.get_val(0), self.get_val(1))
+        self.cpu.set_memory(self.get_out(), [self.op(self.get_val(0), self.get_val(1))])
+        # self.program[self.out] = self.op(self.get_val(0), self.get_val(1))
 
 
 class Add(BinaryInstruction):
@@ -79,7 +89,8 @@ class Input(Instruction):
     nemonic = "INP"
 
     def operate(self):
-        self.program[self.out] = self.cpu.get_input()
+        self.cpu.set_memory(self.get_out(), [self.cpu.get_input()])
+        # self.program[self.out] = self.cpu.get_input()
 
 
 class Output(Instruction):
@@ -118,7 +129,6 @@ class LT(BinaryInstruction):
     nemonic = "LT"
 
     def op(self, a, b):
-        print(f"lt {a} < {b}")
         return 1 if a < b else 0
 
 
@@ -127,8 +137,16 @@ class EQ(BinaryInstruction):
     nemonic = "EQ"
 
     def op(self, a, b):
-        print(f"eq {a} == {b}")
         return 1 if a == b else 0
+
+
+class AdjustRelativeBase(Instruction):
+    opcode = 9
+    num_ints = 2
+    nemonic = "REL"
+
+    def operate(self):
+        self.cpu.relative_base += self.get_val(0)
 
 
 class Halt(Instruction):
@@ -140,18 +158,19 @@ class Halt(Instruction):
         self.cpu.halt()
 
 
-all_instructions = (Add, Multiply, Input, Output, JEQ, JNE, LT, EQ, Halt)
+all_instructions = (Add, Multiply, Input, Output, JEQ, JNE, LT, EQ, AdjustRelativeBase, Halt)
 
 
 class IntCode:
     instruction_map = {cls.opcode: cls for cls in all_instructions}
 
     def __init__(self, program, inputs=[]):
-        self.program = program[::]
+        self.program = program[::] + [0] * 10000
         self.inputs = inputs[::]
         self.output = []
         self.pc = 0
         self.halted = False
+        self.relative_base = 0
 
     def halt(self):
         self.halted = True
@@ -163,6 +182,12 @@ class IntCode:
 
     def send_output(self, value):
         self.output.append(value)
+
+    def get_memory(self, addr, len):
+        return self.program[addr : addr + len]
+
+    def set_memory(self, addr, data):
+        self.program[addr : addr + len(data)] = data
 
     def run(self):
         self.pc = 0
