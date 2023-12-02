@@ -23,6 +23,15 @@ class Game:
                     return False
         return True
 
+    def power(self):
+        product = 1
+
+        for i in range(3):
+            min_cubes = max(draw[i] for draw in self.draws)
+            product *= min_cubes
+
+        return product
+
 
 games = []
 with open(sys.argv[1], "r") as file:
@@ -30,3 +39,4 @@ with open(sys.argv[1], "r") as file:
         games.append(Game(line.strip()))
 
 print(sum(game.id for game in games if game.possible([12, 13, 14])))
+print(sum(game.power() for game in games))
