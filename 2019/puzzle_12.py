@@ -79,14 +79,13 @@ for i in range(1000):
 print(system.energy())
 
 system = copy.deepcopy(orig_system)
+system.step()
 
-cycle_steps = [0, 0, 0]
+cycle_steps = [1, 1, 1]
+
 for axis in range(3):
-    while True:
+    while not system.equal_axis(orig_system, axis):
         system.step_axis(axis)
         cycle_steps[axis] += 1
-
-        if system.equal_axis(orig_system, axis):
-            break
 
 print(math.lcm(*cycle_steps))
