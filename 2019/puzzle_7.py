@@ -61,6 +61,8 @@ for phases in itertools.permutations(list(range(5, 10))):
                 program.resume()
             except intcode.InputStall:
                 stall = True
+            except intcode.Halted:
+                pass
 
             if len(program.output) > 0:
                 programs[(i + 1) % len(programs)].inputs.append(program.output.pop(0))
