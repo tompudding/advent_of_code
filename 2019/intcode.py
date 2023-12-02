@@ -5,6 +5,10 @@ class InputStall(Exception):
     pass
 
 
+class Halted(Exception):
+    pass
+
+
 class ParameterMode(enum.IntFlag):
     POSITION = 0
     IMMEDIATE = 1
@@ -183,15 +187,23 @@ class IntCode:
     def send_output(self, value):
         self.output.append(value)
 
-    def get_memory(self, addr, len):
-        return self.program[addr : addr + len]
+    def get_memory(self, addr, length):
+        if addr + length > len(self.program):
+            print(f"Expanding program up to len {addr+length}")
+            extra = (addr + length) - len(self.program)
+            self.program.extend([0] * extra)
+
+        return self.program[addr : addr + length]
 
     def set_memory(self, addr, data):
         self.program[addr : addr + len(data)] = data
 
     def run(self):
         self.pc = 0
-        self.resume()
+        try:
+            self.resume()
+        except Halted:
+            pass
 
     def resume(self):
         while self.pc < len(self.program):
@@ -202,6 +214,7 @@ class IntCode:
                 assert self.pc != old_pc
                 continue
             if self.halted:
+                raise Halted()
                 break
             self.pc += ins.num_ints
 

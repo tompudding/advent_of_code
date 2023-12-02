@@ -9,9 +9,6 @@ class Facing:
     UP = 3
 
 
-# in_to_rotation = {
-
-
 def get_num(path):
     pos = 0
     while pos < len(path) and path[pos] in "0123456789":
