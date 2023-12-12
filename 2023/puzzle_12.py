@@ -19,18 +19,12 @@ class SpringRow:
         self.orig_springs = [spring for spring in self.springs]
         self.orig_groups = [group for group in self.groups]
 
-        # print("New spring:", self)
-
         try:
             self.simplify()
         except Impossible:
             # Here we just assume it's impossible
             self.groups = []
             self.springs = [""]
-            # print("SIMPLIFICATION ERROR:")
-            # print(self)
-
-        # print("Simplified to:", self)
 
         self.question_marks = sum(spring.count("?") for spring in self.springs)
 
@@ -45,26 +39,6 @@ class SpringRow:
 
         while modified and self.springs:
             modified = False
-            # print("A", self)
-            # for end_group in range(1, len(self.groups)):
-            #     if len(self.springs[0]) == sum(group for group in self.groups[:end_group]) + (end_group - 1):
-            #         # There is only one way to achieve this so we can ignore it
-            #         self.springs = self.springs[1:]
-            #         self.groups = self.groups[end_group:]
-            #         modified = True
-            #         break
-            # print("B", self)
-
-            # # Also go from the other end
-            # for end_group in range(len(self.groups) - 1, -1, -1):
-            #     if len(self.springs[-1]) == sum(group for group in self.groups[end_group:]) + (
-            #         len(self.groups) - end_group - 1
-            #     ):
-            #         # There is only one way to achieve this so we can ignore it
-            #         self.springs = self.springs[:-1]
-            #         self.groups = self.groups[:end_group]
-            #         modified = True
-            #         break
 
             if len(self.groups) == 0 and any("#" in spring for spring in self.springs):
                 raise Impossible
@@ -75,7 +49,6 @@ class SpringRow:
 
             # If the first or last springs start with a hash, we know how many hashes there must be and we can eat those
             if self.springs[0].startswith("#"):
-                # print("C", self)
                 if len(self.springs[0]) < self.groups[0]:
                     raise Impossible
 
@@ -89,15 +62,13 @@ class SpringRow:
                 self.groups = self.groups[1:]
                 self.springs = [spring for spring in self.springs if spring]
                 modified = True
-                # print("C.5", self)
-                continue
 
-            # print("D", self)
+                continue
 
             if self.springs[-1].endswith("#"):
                 # We're going to trip a bunch of #s from the end, but if there are any left they must end in a
                 # question mark and we now know that question mark which we can remove as it must be a dot
-                # print("D", self)
+
                 if len(self.springs[-1]) < self.groups[-1]:
                     raise Impossible
 
@@ -111,10 +82,7 @@ class SpringRow:
                 self.groups = self.groups[:-1]
                 self.springs = [spring for spring in self.springs if spring]
                 modified = True
-                # print("D.5", self)
                 continue
-
-            # print("E", self)
 
             # We can check the first question mark and see if it must be one or the other
             if self.springs[0][0] == "?":
@@ -155,15 +123,14 @@ class SpringRow:
         if not self.springs:
             # This is the degenerate case
             if self.groups:
-                # print("ZEro")
                 return 0
-            # print("ONE")
+
             return 1
         if not self.groups:
             # This is valid if all the springs are empty
             if set("".join(self.springs)) == {"?"}:
                 return 1
-            # print("Zero")
+
             return 0
 
         # Handle a simple case: n ? and one group of m means there are n - m + 1 ways
@@ -201,36 +168,19 @@ class SpringRow:
 rows = []
 
 with open(sys.argv[1], "r") as file:
-    for line in file:
-        springs, groups = line.strip().split()
-        groups = [int(group) for group in groups.split(",")]
-        rows.append(SpringRow(springs, groups))
+    lines = [line.strip().split() for line in file]
 
 
-# print(sum(2**row.question_marks for row in rows))
-total = 0
-for row in rows:
-    # print(row)
-    num = row.get_num_arrangements()
-    print("**", row, num)
-    total += num
+rows = [SpringRow(springs, [int(group) for group in groups.split(",")]) for springs, groups in lines]
 
-print(total)
+
+print(sum(row.get_num_arrangements() for row in rows))
 
 rows = []
+for springs, groups in lines:
+    springs = "?".join([springs] * 5)
+    groups = ",".join([groups] * 5)
+    groups = [int(group) for group in groups.split(",")]
+    rows.append(SpringRow(springs, groups))
 
-with open(sys.argv[1], "r") as file:
-    for line in file:
-        springs, groups = line.strip().split()
-        springs = "?".join([springs] * 5)
-        groups = ",".join([groups] * 5)
-        groups = [int(group) for group in groups.split(",")]
-        rows.append(SpringRow(springs, groups))
-
-
-total = 0
-for row in rows:
-    num = row.get_num_arrangements()
-    total += num
-
-print(total)
+print(sum(row.get_num_arrangements() for row in rows))
