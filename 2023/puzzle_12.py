@@ -5,26 +5,7 @@ class Impossible(Exception):
     pass
 
 
-def get_runs(array):
-    runs = []
-
-    current = 0
-    on_run = None
-    for i, char in enumerate(array):
-        if char == "#":
-            if on_run is None:
-                on_run = i
-            current += 1
-            continue
-        else:
-            if on_run is not None:
-                runs.append((on_run, current))
-                current = 0
-                on_run = None
-    if on_run is not None:
-        runs.append((on_run, current))
-
-    return sorted(runs, key=lambda x: -x[1])
+cache = {}
 
 
 class SpringRow:
@@ -42,7 +23,7 @@ class SpringRow:
 
         try:
             self.simplify()
-        except:
+        except Impossible:
             # Here we just assume it's impossible
             self.groups = []
             self.springs = [""]
@@ -52,22 +33,6 @@ class SpringRow:
         # print("Simplified to:", self)
 
         self.question_marks = sum(spring.count("?") for spring in self.springs)
-
-    def is_bad(self):
-        # We can do a very basic test here. Are there too many #s for our groups?
-        hashes = sum(spring.count("#") for spring in self.springs)
-
-        if hashes > sum(self.groups):
-            return True
-
-        # What if the longest run is already too long?
-        working = [c for c in ".".join(self.springs)]
-        runs = get_runs(working)
-
-        if runs and all(runs[0][1] > group for group in self.groups):
-            return True
-
-        return False
 
     def simplify(self):
         # Start by inferring everything we can
@@ -101,25 +66,23 @@ class SpringRow:
             #         modified = True
             #         break
 
-            # print("B.5", self)
-            # if self.is_bad():
-            #     raise Impossible
+            if len(self.groups) == 0 and any("#" in spring for spring in self.springs):
+                raise Impossible
 
             self.springs = [spring for spring in self.springs if spring]
             if not self.springs:
                 break
 
-            # print("C", self)
-
             # If the first or last springs start with a hash, we know how many hashes there must be and we can eat those
             if self.springs[0].startswith("#"):
+                # print("C", self)
                 if len(self.springs[0]) < self.groups[0]:
                     raise Impossible
 
                 self.springs[0] = self.springs[0][self.groups[0] :]
 
                 if self.springs[0]:
-                    if self.springs[0][0] == "#":
+                    if self.springs[0].startswith("#"):
                         raise Impossible
                     self.springs[0] = self.springs[0][1:]
 
@@ -134,19 +97,21 @@ class SpringRow:
             if self.springs[-1].endswith("#"):
                 # We're going to trip a bunch of #s from the end, but if there are any left they must end in a
                 # question mark and we now know that question mark which we can remove as it must be a dot
+                # print("D", self)
                 if len(self.springs[-1]) < self.groups[-1]:
                     raise Impossible
 
                 self.springs[-1] = self.springs[-1][: -(self.groups[-1])]
 
                 if self.springs[-1]:
-                    if self.springs[-1][-1] == "#":
+                    if self.springs[-1].endswith("#"):
                         raise Impossible
                     self.springs[-1] = self.springs[-1][:-1]
 
                 self.groups = self.groups[:-1]
                 self.springs = [spring for spring in self.springs if spring]
                 modified = True
+                # print("D.5", self)
                 continue
 
             # print("E", self)
@@ -158,8 +123,6 @@ class SpringRow:
                     idx = self.springs[0].index("?", 1)
                 except ValueError:
                     idx = len(self.springs[0])
-
-                # print("BONK", idx)
 
                 if idx > 1:
                     if idx - 1 == self.groups[0]:
@@ -186,8 +149,6 @@ class SpringRow:
         if on_run:
             runs.append(current)
 
-        # print("amongo", working, runs, groups)
-
         return 1 if runs == self.groups else 0
 
     def get_num_arrangements(self):
@@ -207,36 +168,28 @@ class SpringRow:
 
         # Handle a simple case: n ? and one group of m means there are n - m + 1 ways
         working = [c for c in ".".join(self.springs)]
+        key = tuple(working), tuple(self.groups)
+        try:
+            return cache[key]
+        except KeyError:
+            pass
 
-        if len(self.groups) == 1 and set(working) == {"?"}:
-            return len(working) - self.groups[0] + 1
-        # print("W", working)
+        if len(self.groups) == 1 and set(working) == {"?"} and len(working) >= self.groups[0]:
+            final = len(working) - self.groups[0] + 1
+            cache[key] = final
+            return final
 
-        # We want to start at the position most likely to make an invalid arrangement soonest, so let's go
-        # with the one that makes the longest run
-        idx = None
-
-        # runs = get_runs(working)
-        # for pos, length in runs:
-        #     if pos > 0 and working[pos - 1] == "?":
-        #         idx = pos - 1
-        #         break
-        #     elif pos + length < len(working) and working[pos + length] == "?":
-        #         idx = pos + length
-        #         break
-
-        if idx is None:
-            try:
-                idx = working.index("?")
-            except ValueError:
-                return self.match()
-        # else:
-        # print(f"selected idx {idx} for", working)
+        try:
+            idx = working.index("?")
+        except ValueError:
+            final = self.match()
+            cache[key] = final
+            return final
 
         a = SpringRow("".join(working[:idx] + ["#"] + working[idx + 1 :]), self.groups).get_num_arrangements()
         b = SpringRow("".join(working[:idx] + ["."] + working[idx + 1 :]), self.groups).get_num_arrangements()
 
-        # print("AB", working, a, b)
+        cache[key] = a + b
         return a + b
 
     def __repr__(self):
@@ -259,7 +212,7 @@ total = 0
 for row in rows:
     # print(row)
     num = row.get_num_arrangements()
-    # print("**", row, num)
+    print("**", row, num)
     total += num
 
 print(total)
@@ -277,9 +230,7 @@ with open(sys.argv[1], "r") as file:
 
 total = 0
 for row in rows:
-    # print(row)
     num = row.get_num_arrangements()
-    print("**", row, num)
     total += num
 
 print(total)
