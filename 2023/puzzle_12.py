@@ -149,14 +149,11 @@ class SpringRow:
         try:
             idx = working.index("?")
         except ValueError:
-            final = self.match()
-            cache[key] = final
-            return final
+            return self.match()
 
         a = SpringRow("".join(working[:idx] + ["#"] + working[idx + 1 :]), self.groups).get_num_arrangements()
         b = SpringRow("".join(working[:idx] + ["."] + working[idx + 1 :]), self.groups).get_num_arrangements()
 
-        cache[key] = a + b
         return a + b
 
     def __repr__(self):
