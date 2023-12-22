@@ -21,7 +21,9 @@ class Brick:
         self.lowest_z = min(z for (x, y, z) in self.cubes)
 
         for cube in self.cubes:
-            space[cube] = self
+            if cube in self.space:
+                raise Exception("Oh no {cube} already in space!")
+            self.space[cube] = self
 
     def unsupported(self):
         return not self.drop_causes_collision(1)
@@ -58,6 +60,59 @@ class Brick:
         self.max[2] -= to_drop
 
         self.register()
+
+    def save(self):
+        self.saved = (list(self.min), list(self.max))
+
+    def load(self, space):
+        self.space = space
+        self.min, self.max = self.saved
+        self.cubes = {
+            (x, y, z)
+            for x in range(self.min[0], self.max[0] + 1)
+            for y in range(self.min[1], self.max[1] + 1)
+            for z in range(self.min[2], self.max[2] + 1)
+        }
+
+        self.lowest_z = min(z for (x, y, z) in self.cubes)
+
+        # self.register()
+
+    def how_many_fall(self, bricks):
+        old_space = {pos: brick for pos, brick in self.space.items()}
+
+        # remove ourselves from the space
+
+        for brick in bricks:
+            brick.save()
+
+        for cube in self.cubes:
+            del self.space[cube]
+
+        who_fell = set()
+
+        falling = sorted(
+            [brick for brick in bricks if brick is not self and brick.unsupported()],
+            key=lambda brick: brick.lowest_z,
+        )
+
+        while falling:
+            for brick in falling:
+                who_fell.add(brick)
+                brick.drop()
+
+            falling = sorted(
+                [brick for brick in bricks if brick is not self and brick.unsupported()],
+                key=lambda brick: brick.lowest_z,
+            )
+
+        num_fell = len(who_fell)
+
+        # Now we need to reset
+        for brick in bricks:
+            brick.load(old_space)
+
+        return num_fell
 
     def __repr__(self):
         return f"Brick of {len(self.cubes)} cubes from {self.min} -> {self.max}"
@@ -98,3 +153,4 @@ for brick in bricks:
         disintegrates += 1
 
 print(disintegrates)
+print(sum(brick.how_many_fall(bricks) for brick in bricks))
