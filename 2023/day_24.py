@@ -1,5 +1,6 @@
 import sys
 import math
+from fractions import Fraction
 
 
 def equal(a, b):
@@ -21,15 +22,15 @@ class Trajectory:
         # y - pos[1] = vel[1]*(x - pos[0])/vel[0]
         # y = vel[1]*(x - pos[0])/vel[0] + pos[1]
         # y = vel[1]/vel[0]*x - vel[1]/vel[0]*pos[0] + pos[1]
-        self.a = self.vel[1] / self.vel[0]
+        self.a = Fraction(numerator=self.vel[1], denominator=self.vel[0])
         self.b = self.pos[1] - self.a * self.pos[0]
 
         # for fun we also consider the other direction and the x/z line
-        self.za = self.vel[2] / self.vel[0]
+        self.za = Fraction(numerator=self.vel[2], denominator=self.vel[0])
         self.zb = self.pos[2] - self.za * self.pos[0]
 
     def get_time(self, x, y):
-        return (x - self.pos[0]) / self.vel[0]
+        return Fraction((x - self.pos[0]), self.vel[0])
 
     def adjust(self, delta_v):
         return Trajectory(
@@ -41,7 +42,7 @@ class Trajectory:
         # ax - a1x = b1 - b
         # x = (b1 - b) / (a - a1)
         try:
-            x = (other.b - self.b) / (self.a - other.a)
+            x = Fraction((other.b - self.b), (self.a - other.a))
             y = self.a * x + self.b
         except ZeroDivisionError:
             # parallel
@@ -60,7 +61,7 @@ class Trajectory:
 
     def zintersect(self, other):
         try:
-            x = (other.zb - self.zb) / (self.za - other.za)
+            x = Fraction((other.zb - self.zb), (self.za - other.za))
             z = self.za * x + self.zb
         except ZeroDivisionError:
             return None
@@ -78,7 +79,7 @@ class Line:
 
     def intersect(self, other):
         try:
-            x = (other.b - self.b) / (self.a - other.a)
+            x = Fraction((other.b - self.b), (self.a - other.a))
             y = self.a * x + self.b
         except ZeroDivisionError:
             return None
@@ -129,104 +130,93 @@ vel_x = 0
 incrementor = 0
 
 
-def is_integer(point):
-    return point is not point[0] % 1.0 < 0.0001 and point[1] % 1.0 < 0.0001
+def is_integer(x):
+    return x.denominator == 1
 
 
-lim = 512
+def is_integer_point(point):
+    return point and is_integer(point[0]) and is_integer(point[1])
+
+
+def test_trajectories(trajectories, pos, vel):
+    print(pos)
+    print(vel)
+    guess = Trajectory(pos, vel)
+
+    times = []
+    for i, line in enumerate(trajectories):
+        pos = line.intersect(guess, need_positive=False)
+        if pos is None:
+            print("No intersection at all!")
+            return False
+        t = guess.get_time(*pos)
+        print(i, t)
+        if not is_integer(t):
+            return False
+
+    return True
+
+
+lim = 300
 for vel_x in range(-lim, lim):
     # new_traj = [traj.adjust((-vel_x, -vel_y, 0)) for traj in trajectories]
     for vel_y in range(-lim, lim):
         adj = (-vel_x, -vel_y, 0)
         intersection = None
-        bad = False
+        match = None
 
-        for i, a in enumerate(trajectories):
+        for i in range(len(trajectories) - 1):
             try:
-                a_prime = a.adjust(adj)
+                a = trajectories[i].adjust(adj)
+                b = trajectories[i + 1].adjust(adj)
             except ZeroDivisionError:
-                bad = True
-                intersection = None
                 break
 
-            for j in range(i + 1, len(trajectories)):
+            x = a.intersect(b, need_positive=False)
+
+            if x is None:
+                continue
+
+            if not is_integer_point(x):
+                # print(f"reject {vel_x} {vel_y} due to non integer {x}")
+                break
+
+            # This seems good
+            match = x
+            break
+        if match is None:
+            continue
+
+        # print("A", x)
+
+        # Try that for z-ness
+        for vel_z in range(-lim, lim):
+            adj = (-vel_x, -vel_y, -vel_z)
+            for i in range(len(trajectories) - 1):
                 try:
-                    b = trajectories[j].adjust(adj)
-                    x = a_prime.intersect(b, need_positive=False)
+                    a = trajectories[i].adjust(adj)
+                    b = trajectories[i + 1].adjust(adj)
                 except ZeroDivisionError:
-                    # print(f"reject {vel_x} {vel_y} due to parallel adjusted lines {b} {a.adjust(adj)}")
-                    bad = True
-                    intersection = None
-                    break
+                    continue
+
+                x = a.zintersect(b)
 
                 if x is None:
                     continue
 
-                if not is_integer(x):
-                    # print(f"reject {vel_x} {vel_y} due to non integer {x}")
-                    bad = True
-                    intersection = None
+                if not is_integer_point(x):
                     break
 
-                if intersection is None:
-                    intersection = x
-                else:
-                    if not equal(intersection, x):
-                        # print(f"reject {vel_x} {vel_y} due to {intersection} != {x}")
-                        bad = True
-                        intersection = None
-                        break
-
-            # if bad:
-            #    break
-            break
-
-        if not bad:
-            print("why", vel_x, vel_y)
-        if intersection:
-            possible_xy.append((vel_x, vel_y, intersection))
-            print("bingo", vel_x, vel_y, intersection, bad)
-
-
-# for each of those possibles we can try the range of z values
-best = 10 ** 80
-for (vel_x, vel_y, (pos_x, pos_y)) in possible_xy:
-    for vel_z in range(-10240, 10240):
-        adj = (-vel_x, -vel_y, -vel_z)
-        for i, a in enumerate(trajectories):
-            bad = False
-            for j in range(i + 1, len(trajectories)):
-                try:
-                    b = trajectories[j].adjust(adj)
-                    x = a.adjust(adj).zintersect(b)
-                except ZeroDivisionError:
-                    bad = True
+                if x[0] != match[0]:
+                    # print("no go", x, match[0])
                     break
 
-                if x is None:
-                    bad = True
-                    break
+                # This seems good
+                # print("B", vel_x, vel_y, vel_z, x)
+                pos = (match[0], match[1], x[1])
+                vel = (vel_x, vel_y, vel_z)
 
-                if intersection is None:
-                    intersection = x
-                else:
-                    if not equal(intersection, x):
-                        bad = True
-                        intersection = None
-                        break
-                    print(intersection, x)
-
-            if bad:
+                if test_trajectories(trajectories, pos, vel):
+                    print("Bingo", sum(pos))
+                    quit()
                 break
-
-        if intersection and intersection[0] % 1.0 < 0.001 and intersection[1] % 1.0 < 0.001:
-            # if int(intersection[0]) == int(pos_x):
-
-            diff = abs(intersection[0] - pos_x)
-            if diff <= best:
-                best = diff
-                print("mingo bingo", vel_x, vel_y, vel_z, pos_x, pos_y, intersection)
-                print("diff", diff, "answer", pos_x + pos_y + intersection[1])
-
-            #    print("****")
-            #    quit()
