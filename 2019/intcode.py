@@ -205,8 +205,10 @@ class IntCode:
         except Halted:
             pass
 
-    def resume(self):
-        while self.pc < len(self.program):
+    def step(self, num):
+        count = 0
+        while self.pc < len(self.program) and num is None or count < num:
+            count += 1
             old_pc = self.pc
             ins = self.instruction_map[self.program[self.pc] % 100](self, self.program)
             if ins.operate():
@@ -218,6 +220,47 @@ class IntCode:
                 break
             self.pc += ins.num_ints
 
+    def resume(self):
+        return self.step(None)
+
+    def debugger(self):
+        # Accept commands to control the CPU:
+        # s <number> = step number of instructions
+        # c = continue
+        # i <number> = input number
+        # p <address or start_address:end_address> = print data
+
+        while True:
+            if self.output:
+                print('Output',self.output)
+                self.output = []
+
+            command = input(f'Stopped at PC {self.pc} >')
+            if command[0] == 's':
+                num = int(command[1:].strip(), 0)
+                self.step(num)
+                continue
+            elif command[0] == 'c':
+                try:
+                    self.resume()
+                except InputStall:
+                    print('CPU asking for input:')
+                    continue
+            elif command[0] == 'i':
+                num = int(command[1:].strip(), 0)
+                self.inputs.append(num)
+                continue
+            elif command[0] == 'p':
+                rest = command[1:].strip()
+                try:
+                    start, end = (int(part.strip(),0) for part in rest.split(':'))
+                except ValueError:
+                    start = int(rest.strip(), 0)
+                    end = start + 1
+                for pos in range(start, end):
+                    print(f'{pos:3d} : {self.program[pos]}')
+
+
     def __repr__(self):
         out = []
 
@@ -226,11 +269,12 @@ class IntCode:
         while pos < len(self.program):
             try:
                 ins = self.instruction_map[self.program[pos] % 100](self, self.program, pos)
+                jump = ins.num_ints
             except KeyError:
-                out.append("UNK")
-                pos += 1
-                continue
-            out.append(repr(ins))
-            pos += ins.num_ints
+                ins = f"UNK : {self.program[pos]}"
+                jump = 1
+
+            out.append(f'{pos:3d} : {ins}')
+            pos += jump
 
         return "\n".join(out)
