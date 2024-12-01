@@ -14,6 +14,5 @@ b.sort()
 
 print(sum(abs(x-y) for (x,y) in zip(a,b)))
 
-common = set(a) & set(b)
 counts = collections.Counter(b)
 print(sum((item*counts[item] for item in a)))
