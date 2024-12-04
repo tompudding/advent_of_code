@@ -13,38 +13,39 @@ class Directions(enum.Enum):
     UP_LEFT = UP + LEFT
 
 class Grid:
-    def __init__(self, lines):
-        self.rows = lines
-        self.starts = set()
+    def __init__(self, rows):
+        self.grid = {}
+        self.starts = {}
+        for y,row in enumerate(rows):
+            for x,char in enumerate(row):
+                p = Point(x,y)
+                self.grid[p] = char
+                try:
+                    self.starts[char].append(p)
+                except KeyError:
+                    self.starts[char] = [p]
+
 
     # Bit of a hack, but return a dict of 1 into the word for matches of the given word in the given directions
     def count_words(self, word, directions):
         matches = {}
         count = 0
 
-        for y,row in enumerate(self.rows):
-            for x,char in enumerate(row):
-                if char != word[0]:
-                    continue
-                start = Point(x,y)
-                for direction in directions:
-                    pos = start
-                    for char in word[1:]:
-                        pos += direction.value
-                        if pos.x < 0 or pos.y < 0:
-                            break
-                        try:
-                            if self.rows[pos.y][pos.x] != char:
-                                break
-                        except IndexError:
-                            break
-                    else:
+        for start in self.starts[word[0]]:
+            for direction in directions:
+                grid_word = (self.grid[start + direction.value*i] for i,char in enumerate(word))
+
+                try:
+                    if all(grid_letter == word_letter for grid_letter, word_letter in zip(grid_word, word)):
                         #print(f'{word} at {start} in {direction}')
                         try:
                             matches[start + direction.value] += 1
                         except KeyError:
                             matches[start + direction.value] = 1
                         count += 1
+                except KeyError:
+                    pass
+
 
         return count, matches
 
