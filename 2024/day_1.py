@@ -1,18 +1,16 @@
 import sys
 import collections
 
-a = []
-b = []
-with open(sys.argv[1], 'r') as file:
+lists = [[], []]
+with open(sys.argv[1], "r") as file:
     for line in file:
-        x, y = (int(v) for v in line.strip().split())
-        a.append(x)
-        b.append(y)
+        for i, num in enumerate(line.strip().split()):
+            lists[i].append(int(num))
 
-a.sort()
-b.sort()
+for l in list:
+    l.sort()
 
-print(sum(abs(x-y) for (x,y) in zip(a,b)))
+print(sum(abs(x - y) for (x, y) in zip(*lists)))
 
-counts = collections.Counter(b)
-print(sum((item*counts[item] for item in a)))
+counts = collections.Counter(lists[1])
+print(sum((item * counts[item] for item in lists[0])))

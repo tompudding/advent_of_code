@@ -1,15 +1,6 @@
 import sys
 import functools
-
-
-class Rule:
-    def __init__(self, a, b):
-        self.a = a
-        self.b = b
-
-    def __repr__(self):
-        return f"{self.a} < {self.b}"
-
+import collections
 
 class Update:
     def __init__(self, numbers):
@@ -17,9 +8,9 @@ class Update:
         self.positions = {num: i for i, num in enumerate(self.numbers)}
 
     def is_valid(self, rules):
-        for rule in rules:
+        for a, b in rules:
             try:
-                if self.positions[rule.a] >= self.positions[rule.b]:
+                if self.positions[a] >= self.positions[b]:
                     return False
             except KeyError:
                 continue
@@ -43,19 +34,16 @@ with open(sys.argv[1], "r") as file:
         line = line.strip()
         if parsing_rules:
             try:
-                rules.append(Rule(*(int(v) for v in line.split("|"))))
+                rules.append([int(v) for v in line.split("|")])
             except ValueError:
                 parsing_rules = False
         else:
             updates.append(Update([int(v) for v in line.split(",")]))
 
-rules_by_num = {}
+rules_by_num = collections.defaultdict(set)
 
-for rule in rules:
-    try:
-        rules_by_num[rule.a].add(rule.b)
-    except KeyError:
-        rules_by_num[rule.a] = {rule.b}
+for a, b in rules:
+    rules_by_num[a].add(b)
 
 
 def compare(a, b):
