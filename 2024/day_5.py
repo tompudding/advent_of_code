@@ -25,20 +25,10 @@ class Update:
         self.numbers.sort(key=functools.cmp_to_key(compare))
 
 
-rules = []
-updates = []
-
-parsing_rules = True
 with open(sys.argv[1], "r") as file:
-    for line in file:
-        line = line.strip()
-        if parsing_rules:
-            try:
-                rules.append([int(v) for v in line.split("|")])
-            except ValueError:
-                parsing_rules = False
-        else:
-            updates.append(Update([int(v) for v in line.split(",")]))
+    rule_lines, update_lines = (part.splitlines() for part in file.read().split('\n\n'))
+    rules = [[int(v) for v in line.split("|")] for line in rule_lines]
+    updates = [Update([int(v) for v in line.split(',')]) for line in update_lines]
 
 rules_by_num = collections.defaultdict(set)
 
@@ -47,17 +37,12 @@ for a, b in rules:
 
 
 def compare(a, b):
-    try:
-        if b in rules_by_num[a]:
-            return -1
-    except KeyError:
-        pass
+    if a in rules_by_num and b in rules_by_num[a]:
+        return -1
 
-    try:
-        if a in rules_by_num[b]:
-            return 1
-    except KeyError:
-        pass
+    if b in rules_by_num and a in rules_by_num[b]:
+        return 1
+
     return 0
 
 
