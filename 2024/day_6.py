@@ -47,12 +47,14 @@ class Grid:
     def walk(self, extra_wall=None):
         guard, guard_direction = self.guard, self.guard_direction
         path = {(guard, guard_direction)}
+        points = {guard}
 
         while True:
             next_pos = guard + guard_direction.value
 
             if next_pos not in self.grid:
                 # We're done
+                # path.add((guard, guard_direction))
                 break
 
             if (next_pos, guard_direction) in path:
@@ -62,12 +64,14 @@ class Grid:
                 guard_direction = self.moves[guard_direction]
                 if (guard, guard_direction) in path:
                     raise Loop
+                path.add((guard, guard_direction))
                 continue
 
-            path.add((next_pos, guard_direction))
+            if extra_wall is None:
+                points.add(next_pos)
             guard = next_pos
 
-        return {pos for pos, direction in path}
+        return points
 
 
 with open(sys.argv[1], "r") as file:
