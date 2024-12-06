@@ -3,10 +3,6 @@ import math
 from fractions import Fraction
 
 
-def equal(a, b):
-    return abs(a[0] - b[0]) < 0.001 and abs(a[1] - b[1]) < 0.001
-
-
 class Trajectory:
     def __init__(self, pos, vel):
         self.pos = pos
@@ -217,6 +213,6 @@ for vel_x in range(-lim, lim):
                 vel = (vel_x, vel_y, vel_z)
 
                 if test_trajectories(trajectories, pos, vel):
-                    print("Bingo", sum(pos))
+                    print("Bingo", pos, sum(pos))
                     quit()
                 break

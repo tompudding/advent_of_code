@@ -4,6 +4,8 @@ import enum
 class InputStall(Exception):
     pass
 
+class OutputStall(Exception):
+    pass
 
 class Halted(Exception):
     pass
@@ -219,6 +221,9 @@ class IntCode:
                 raise Halted()
                 break
             self.pc += ins.num_ints
+
+            if len(self.output) > 10000 and self.output[-1] == ord('\n'):
+                raise OutputStall
 
     def resume(self):
         return self.step(None)
