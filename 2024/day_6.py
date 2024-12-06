@@ -1,13 +1,12 @@
 import sys
-from utils import Point2D as Point
 import enum
 
 
 class Directions(enum.Enum):
-    UP = Point(0, -1)
-    RIGHT = Point(1, 0)
-    DOWN = Point(0, 1)
-    LEFT = Point(-1, 0)
+    UP = (0, -1)
+    RIGHT = (1, 0)
+    DOWN = (0, 1)
+    LEFT = (-1, 0)
 
 
 class Loop(Exception):
@@ -34,7 +33,7 @@ class Grid:
 
         for y, row in enumerate(lines):
             for x, char in enumerate(row):
-                p = Point(x, y)
+                p = (x, y)
                 if char == "^":
                     self.guard = p
                     char = "."
@@ -50,11 +49,10 @@ class Grid:
         points = {guard}
 
         while True:
-            next_pos = guard + guard_direction.value
+            next_pos = (guard[0] + guard_direction.value[0], guard[1] + guard_direction.value[1])
 
             if next_pos not in self.grid:
                 # We're done
-                # path.add((guard, guard_direction))
                 break
 
             if (next_pos, guard_direction) in path:
