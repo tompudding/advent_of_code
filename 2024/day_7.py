@@ -13,14 +13,18 @@ def concatenate(a, b):
     return int(str(a) + str(b))
 
 
-def increment(indices, num):
-    for i in range(len(indices)):
-        indices[i] += 1
-        if indices[i] != num:
-            break
-        indices[i] = 0
-    else:
-        return True
+def possible(result, total, numbers, operators):
+    if len(numbers) == 0:
+        return total == result
+    for operator in operators:
+        new_total = operator(total, numbers[0])
+
+        if new_total > result:
+            continue
+
+        success = possible(result, new_total, numbers[1:], operators)
+        if success:
+            return success
 
 
 class Equation:
@@ -32,27 +36,26 @@ class Equation:
         self.numbers = [int(v) for v in rest.strip().split()]
 
     def possible(self, operators):
-        indices = [0 for i in self.numbers[:-1]]
-
-        while True:
-            total = self.numbers[0]
-
-            for i in range(len(indices)):
-                operator = operators[indices[i]]
-                total = operator(total, self.numbers[i + 1])
-
-                if total == self.result and (i == len(indices) - 1):
-                    return True
-                if total > self.result:
-                    break
-
-            if increment(indices, len(operators)):
-                return False
+        return possible(self.result, self.numbers[0], self.numbers[1:], operators)
 
 
 with open(sys.argv[1], "r") as file:
     equations = [Equation(line.strip()) for line in file]
 
+valid = []
+not_valid = []
+for eq in equations:
+    if eq.possible((add, mul)):
+        valid.append(eq)
+    else:
+        not_valid.append(eq)
 
-print(sum(equation.result for equation in equations if equation.possible((add, mul))))
-print(sum(equation.result for equation in equations if equation.possible((add, mul, concatenate))))
+part_one = sum(equation.result for equation in valid)
+
+print(part_one)
+
+part_two = part_one + sum(
+    equation.result for equation in not_valid if equation.possible((add, mul, concatenate))
+)
+
+print(part_two)
