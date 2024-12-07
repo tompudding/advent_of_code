@@ -31,8 +31,6 @@ class Equation:
     def __init__(self, line):
         self.result, rest = line.split(":")
         self.result = int(self.result)
-
-        # We reverse the numbers so we compute from the right hand side
         self.numbers = [int(v) for v in rest.strip().split()]
 
     def possible(self, operators):
@@ -44,11 +42,8 @@ with open(sys.argv[1], "r") as file:
 
 valid = []
 not_valid = []
-for eq in equations:
-    if eq.possible((add, mul)):
-        valid.append(eq)
-    else:
-        not_valid.append(eq)
+for equation in equations:
+    (valid if equation.possible((add, mul)) else not_valid).append(equation)
 
 part_one = sum(equation.result for equation in valid)
 
