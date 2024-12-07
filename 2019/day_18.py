@@ -113,59 +113,15 @@ class Grid:
 
                     frontier.add((next_pos, new_cost, keys_collected, keys_required))
 
-            # print(start, len(visited))
-            # for (target, collected, required), cost in map_to.items():
-            #    print(target)
-            #    print(collected)
-            #    print(required)
-            #    print(cost)
-            # print("-" * 80)
             self.compressed[start] = map_to
 
-    def get_neighbours_slow(self, pos, keys):
-        for direction in self.moves:
-            next_pos = pos + direction.value
-            if next_pos in self.walls:
-                continue
-            try:
-                if self.doors[next_pos].name not in keys:
-                    continue
-            except KeyError:
-                pass
-            # We can move here
-            try:
-                new_keys = frozenset(keys | {self.keys[next_pos].name})
-            except KeyError:
-                new_keys = keys
-
-            yield (next_pos, frozenset(new_keys)), 1
-
     def get_neighbours(self, pos, keys):
-        # print("GN", pos, keys)
+
         for target, (cost, collected, required) in self.compressed[pos].items():
             if not required.issubset(keys):
                 continue
-            # print(
-            #    "->", target.pos, target.name, keys | collected, cost, required, keys, keys.issubset(required)
-            # )
+
             yield (target.pos, keys | collected), cost
-
-    def __repr__(self):
-        out = []
-        for y in range(self.height):
-            line = []
-            for x in range(self.width):
-                p = Point(x, y)
-
-                if p == self.pos:
-                    char = "@"
-                else:
-                    char = str(self.grid.get(p, "."))
-                line.append(char)
-
-            out.append("".join(line))
-
-        return "\n".join(out)
 
 
 with open(sys.argv[1], "r") as file:
@@ -183,15 +139,11 @@ while frontier:
     s, (pos, keys) = heapq.heappop(frontier)
 
     if len(keys) == len(grid.keys):
-        print("bonho")
+        # Got it!
         break
 
     for next_state, cost in grid.get_neighbours(pos, keys):
         new_cost = cost_so_far[pos, keys] + cost
-
-        # grid.pos = next_state[0]
-        # print(grid)
-        # print(next_state)
 
         if next_state not in cost_so_far or new_cost < cost_so_far[next_state]:
             cost_so_far[next_state] = new_cost
@@ -201,16 +153,8 @@ while frontier:
 
 
 else:
-    print("Failed to find the jawn")
+    print("Failed to find the path")
     raise Bad()
 
-path = [pos]
-
-# while (pos, keys) != (grid.pos, frozenset()):
-#    pos, keys = came_from[pos, keys]
-#    path.insert(0, (pos, keys))
-
-# for i, (pos, keys) in enumerate(path):
-#    print(i, (pos, keys))
 
 print(cost_so_far[pos, keys])
