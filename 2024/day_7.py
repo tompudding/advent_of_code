@@ -7,7 +7,7 @@ class InputError(Exception):
 
 def div(a, b):
     if a % b != 0:
-        raise InputError()
+        raise InputError
     return a // b
 
 
