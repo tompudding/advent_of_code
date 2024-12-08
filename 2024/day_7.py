@@ -13,18 +13,14 @@ def concatenate(a, b):
     return int(str(a) + str(b))
 
 
-def possible(result, total, numbers, operators):
-    if len(numbers) == 0:
+def possible(result, total, numbers, num, operators):
+    if total > result:
+        return
+    if len(numbers) == num:
         return total == result
     for operator in operators:
-        new_total = operator(total, numbers[0])
-
-        if new_total > result:
-            continue
-
-        success = possible(result, new_total, numbers[1:], operators)
-        if success:
-            return success
+        if possible(result, operator(total, numbers[num]), numbers, num + 1, operators):
+            return True
 
 
 class Equation:
@@ -34,7 +30,7 @@ class Equation:
         self.numbers = [int(v) for v in rest.strip().split()]
 
     def possible(self, operators):
-        return possible(self.result, self.numbers[0], self.numbers[1:], operators)
+        return possible(self.result, self.numbers[0], self.numbers, 1, operators)
 
 
 with open(sys.argv[1], "r") as file:
