@@ -1,5 +1,7 @@
 import sys
 
+# This is horrific but it gives the right answer
+
 with open(sys.argv[1], "r") as file:
     data = file.read().strip()
 
@@ -38,10 +40,10 @@ for block_id, file_pos, file_length in reversed(files):
             break
         disk[pos] = block_id
         disk[file_pos + x] = None
-        print(f"putting {block_id} at {pos} {file_pos + x}")
+        # print(f"putting {block_id} at {pos} {file_pos + x}")
         pos += 1
 
-print(disk)
+# print(disk)
 total = 0
 for i, val in enumerate(disk):
     if val is None:
@@ -79,7 +81,7 @@ for block_id, file_pos, file_length in files:
     for x in range(file_length):
         disk[file_pos + x] = block_id
 
-print(space)
+# print(space)
 
 
 for block_id, file_pos, file_length in reversed(files):
@@ -92,9 +94,10 @@ for block_id, file_pos, file_length in reversed(files):
             placed = free_pos
             break
     if placed is not None:
+        # We should at least update just the parts of this that have changed, but this problem is tedious
         space = compute_free_space(disk)
 
-print(disk)
+# print(disk)
 
 total = 0
 for i, val in enumerate(disk):
