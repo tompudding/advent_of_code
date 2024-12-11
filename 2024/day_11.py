@@ -30,7 +30,7 @@ while new_maps:
     stone_maps |= new_maps
 
 
-def count_stones_at_step(step):
+def count_stones_at_step(stones, step):
     counts = {n: 1 for n in stones}
 
     for i in range(step):
@@ -43,5 +43,5 @@ def count_stones_at_step(step):
     return sum(count for count in counts.values())
 
 
-print(count_stones_at_step(25))
-print(count_stones_at_step(75))
+print(count_stones_at_step(stones, 25))
+print(count_stones_at_step(stones, 75))
