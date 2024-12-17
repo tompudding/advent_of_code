@@ -237,7 +237,3 @@ print(A)
 # OUT B
 # if( a == 0 ): done
 # else start again
-# 4532307133267275
-# 4532357133267275 is too high
-# 164546529291965 is too high
-# 164541160582845
