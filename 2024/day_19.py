@@ -8,31 +8,14 @@ with open(sys.argv[1], "r") as file:
 
 
 @functools.lru_cache
-def possible(pattern):
-    if not pattern:
-        return True
-
-    for towel in towels:
-        if pattern.startswith(towel):
-            if possible(pattern.removeprefix(towel)):
-                return True
-    return False
+def count(pattern, collect):
+    if pattern:
+        return collect(
+            count(pattern.removeprefix(towel), collect) for towel in towels if pattern.startswith(towel)
+        )
+    return True
 
 
-@functools.lru_cache
-def num_ways(pattern):
-    if not pattern:
-        return 1
-
-    total = 0
-    for towel in towels:
-        if pattern.startswith(towel):
-            total += num_ways(pattern.removeprefix(towel))
-
-    return total
-
-
-patterns = [pattern for pattern in patterns if possible(pattern)]
+patterns = [pattern for pattern in patterns if count(pattern, any)]
 print(len(patterns))
-
-print(sum(num_ways(pattern) for pattern in patterns))
+print(sum(count(pattern, sum) for pattern in patterns))
