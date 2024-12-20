@@ -89,16 +89,27 @@ class Grid:
         # 20 moves or fewer
         count = 0
 
-        for pos, step in self.path.items():
-            for target, target_step in reversed(self.path.items()):
+        path = list(self.path.items())
+
+        for i, (pos, step) in enumerate(path):
+            rev_pos = len(self.path) - 1
+            while rev_pos > i:
+                target, target_step = path[rev_pos]
                 if target == pos:
                     break
                 diff = manhattan(pos, target)
                 if diff > 20:
+                    # We can reduce this diff by at most 1 per step, so we can jump here
+                    rev_pos -= diff - 20
                     continue
-                saving = target_step - diff - step
+                step_saving = target_step - step
+                if step_saving < 100:
+                    break
+                saving = step_saving - diff
                 if saving >= 100:
                     count += 1
+                rev_pos -= 1
+
         return count
 
 
