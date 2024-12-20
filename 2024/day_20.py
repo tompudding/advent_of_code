@@ -22,6 +22,8 @@ def manhattan(x, y):
 
 
 class Grid:
+    moves = set(Directions)
+
     def __init__(self, lines):
         self.grid = {}
         self.walls = set()
@@ -70,17 +72,16 @@ class Grid:
         count = 0
 
         for pos, step in self.path.items():
-            for i in Directions:
-                for j in Directions:
-                    step_one = add(pos, i.value)
-                    step_two = add(step_one, j.value)
+            for i in self.moves:
+                step_one = add(pos, i.value)
+                step_two = add(step_one, i.value)
 
-                    best = step
-                    if step_two in self.path:
-                        best = min(best, self.path[step_two] + 2)
+                best = step
+                if step_two in self.path:
+                    best = min(best, self.path[step_two] + 2)
 
-                    if best < step and step_one in self.walls and step - best >= 100:
-                        count += 1
+                if best < step and step_one in self.walls and step - best >= 100:
+                    count += 1
 
         return count
 
