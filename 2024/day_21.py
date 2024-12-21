@@ -26,6 +26,7 @@ def add(x, y):
 class Keypad:
     def __init__(self, lines):
         self.pos_to_button = {}
+        self.button_to_pos = {}
         self.gaps = set()
         self.counts = {}
 
@@ -36,8 +37,7 @@ class Keypad:
                     self.gaps.add(p)
                     continue
                 self.pos_to_button[p] = char
-
-        self.button_to_pos = {v: k for k, v in self.pos_to_button.items()}
+                self.button_to_pos[char] = p
 
     def up(self, pos, target_pos):
         if target_pos[1] < pos[1]:
@@ -136,11 +136,8 @@ class Keypad:
 
         return [commands + command_set for command_set in extra_commands]
 
-
-class ExhaustKeypad(Keypad):
-
     def write(self, code, start="A"):
-        # The difference to the basic keypad is that this write function returns all possible codes
+        # This writes the full list of commands needed to punch in code
 
         button = start
         start = code
@@ -164,8 +161,8 @@ class ExhaustKeypad(Keypad):
         raise BadCode()
 
 
-numeric = ExhaustKeypad(["789", "456", "123", " 0A"])
-directional = ExhaustKeypad([" ^A", "<v>"])
+numeric = Keypad(["789", "456", "123", " 0A"])
+directional = Keypad([" ^A", "<v>"])
 
 
 @functools.cache
@@ -224,9 +221,3 @@ with open(sys.argv[1], "r") as file:
 
 print(sum(command_all_robots(code, 2) * int(code[:-1]) for code in codes))
 print(sum(command_all_robots(code, 25) * int(code[:-1]) for code in codes))
-
-
-# print(len(basic.counts))
-
-# 308848275370824 is too high
-# 123381876968876 is too low
