@@ -108,9 +108,9 @@ class Keypad:
                 return commands, pos
         return None, None
 
-    def write(self, code):
-        # I think we always start a 'A'
-        button = "A"
+    def write(self, code, start="A"):
+        # The difference to the basic keypad is that this write function returns all possible codes
+        button = start
         pos = self.button_to_pos[button]
         commands = []
         start = code
@@ -119,6 +119,7 @@ class Keypad:
         while code:
             target_button = code.pop(0)
             target_pos = self.button_to_pos[target_button]
+
             diff = (target_pos[0] - pos[0], target_pos[1] - pos[1])
             moves = []
             if diff[0] < 0:
@@ -130,17 +131,82 @@ class Keypad:
             elif diff[1] > 0:
                 moves.append(self.down)
 
-            for move in moves:
-                new_commands, new_pos = move(pos, target_pos)
-                if new_commands:
-                    commands.extend(new_commands)
-                    pos = new_pos
+            # if there's only one move we can just take it
+            if len(moves) == 1:
+                new_commands, new_pos = moves[0](pos, target_pos)
+                if not new_commands:
+                    raise tim
+                commands.extend(new_commands)
+                commands.append("A")
+                pos = new_pos
+                continue
 
-            # Then we need to punch A
-            commands.append("A")
-        out = "".join(commands)
+            # If there's two, we might still on have one ordering because one hits a gap
 
-        yield out
+            extra_commands = []
+
+            for move_set in moves, reversed(moves):
+                current = pos
+                current_commands = []
+                for move in move_set:
+                    new_commands, new_pos = move(current, target_pos)
+                    if not new_commands:
+                        break
+                    current_commands.extend(new_commands)
+                    current = new_pos
+                else:
+                    # If we didn't break it worked nicely
+                    current_commands.append("A")
+                    extra_commands.append(current_commands)
+
+            commands.extend(extra_commands[0])
+            pos = target_pos
+            continue
+
+            # Otherwise we've got two choices and we want to try both
+
+            # for rest in self.write(code, start=self.pos_to_button[current]):
+            #     for command_set in extra_commands:
+            #         # print("XX", "".join(commands), "|", "".join(command_set), "|", rest)
+            #         yield "".join(commands + command_set) + rest
+
+            # return
+
+        yield "".join(commands)
+
+    # def write(self, code):
+    #     # I think we always start a 'A'
+    #     button = "A"
+    #     pos = self.button_to_pos[button]
+    #     commands = []
+    #     start = code
+    #     code = list(code)
+
+    #     while code:
+    #         target_button = code.pop(0)
+    #         target_pos = self.button_to_pos[target_button]
+    #         diff = (target_pos[0] - pos[0], target_pos[1] - pos[1])
+    #         moves = []
+    #         if diff[0] < 0:
+    #             moves.append(self.left)
+    #         elif diff[0] > 0:
+    #             moves.append(self.right)
+    #         if diff[1] < 0:
+    #             moves.append(self.up)
+    #         elif diff[1] > 0:
+    #             moves.append(self.down)
+
+    #         for move in moves:
+    #             new_commands, new_pos = move(pos, target_pos)
+    #             if new_commands:
+    #                 commands.extend(new_commands)
+    #                 pos = new_pos
+
+    #         # Then we need to punch A
+    #         commands.append("A")
+    #     out = "".join(commands)
+
+    #     yield out
 
 
 class ExhaustKeypad(Keypad):
@@ -157,56 +223,57 @@ class ExhaustKeypad(Keypad):
             target_pos = self.button_to_pos[target_button]
 
             diff = (target_pos[0] - pos[0], target_pos[1] - pos[1])
-            if diff[0] == 0 or diff[1] == 0:
-                # There's only one way to do this
+            moves = []
+            if diff[0] < 0:
+                moves.append(self.left)
+            elif diff[0] > 0:
+                moves.append(self.right)
+            if diff[1] < 0:
+                moves.append(self.up)
+            elif diff[1] > 0:
+                moves.append(self.down)
 
-                diff = (target_pos[0] - pos[0], target_pos[1] - pos[1])
-                moves = []
-                if diff[0] < 0:
-                    moves.append(self.left)
-                elif diff[0] > 0:
-                    moves.append(self.right)
-                if diff[1] < 0:
-                    moves.append(self.up)
-                elif diff[1] > 0:
-                    moves.append(self.down)
-
-                for move in moves:
-                    new_commands, new_pos = move(pos, target_pos)
-                    if new_commands:
-                        commands.extend(new_commands)
-                        pos = new_pos
-
+            # if there's only one move we can just take it
+            if len(moves) == 1:
+                new_commands, new_pos = moves[0](pos, target_pos)
+                if not new_commands:
+                    raise tim
+                commands.extend(new_commands)
                 commands.append("A")
+                pos = new_pos
+                continue
 
-            else:
-                # We can choose to go horiz,vert or vert,horiz. So try both
-                moves_horiz = []
-                if diff[0] < 0:
-                    moves_horiz.append(self.left)
-                elif diff[0] > 0:
-                    moves_horiz.append(self.right)
-                if diff[1] < 0:
-                    moves_horiz.append(self.up)
-                elif diff[1] > 0:
-                    moves_horiz.append(self.down)
+            # If there's two, we might still on have one ordering because one hits a gap
 
-                moves_vert = reversed(moves_horiz)
-                for move_set in moves_horiz, moves_vert:
-                    gonk = []
-                    current = pos
-                    for move in move_set:
-                        new_commands, new_pos = move(current, target_pos)
-                        if not new_commands:
-                            continue
-                        gonk.extend(new_commands)
-                        current = new_pos
-                    gonk.append("A")
+            extra_commands = []
 
-                    for rest in self.write(code, start=self.pos_to_button[current]):
-                        # print("XX", "".join(commands), "|", "".join(gonk), "|", rest)
-                        yield "".join(commands + gonk) + rest
-                return
+            for move_set in moves, reversed(moves):
+                current = pos
+                current_commands = []
+                for move in move_set:
+                    new_commands, new_pos = move(current, target_pos)
+                    if not new_commands:
+                        break
+                    current_commands.extend(new_commands)
+                    current = new_pos
+                else:
+                    # If we didn't break it worked nicely
+                    current_commands.append("A")
+                    extra_commands.append(current_commands)
+
+            if len(extra_commands) == 1:
+                commands.extend(extra_commands[0])
+                pos = target_pos
+                continue
+
+            # Otherwise we've got two choices and we want to try both
+
+            for rest in self.write(code, start=self.pos_to_button[current]):
+                for command_set in extra_commands:
+                    # print("XX", "".join(commands), "|", "".join(command_set), "|", rest)
+                    yield "".join(commands + command_set) + rest
+
+            return
 
         yield "".join(commands)
 
@@ -214,7 +281,7 @@ class ExhaustKeypad(Keypad):
 numeric = ExhaustKeypad(["789", "456", "123", " 0A"])
 directional = ExhaustKeypad([" ^A", "<v>"])
 basic = Keypad([" ^A", "<v>"])
-keypads = [numeric, directional]
+keypads = [numeric, directional, basic]
 # keypads = [numeric, directional]
 
 
@@ -241,8 +308,8 @@ for code in codes:
     command = command_all_robots(code, keypads, 0)
     print(command)
     total += command * int(code[:-1])
-    break
-# print(total)
+
+print(total)
 
 # print(sum(len(command_all_robots(code)) * int(code[:-1]) for code in codes))
 
