@@ -158,55 +158,13 @@ class Keypad:
                     # If we didn't break it worked nicely
                     current_commands.append("A")
                     extra_commands.append(current_commands)
+                    break
 
             commands.extend(extra_commands[0])
             pos = target_pos
             continue
 
-            # Otherwise we've got two choices and we want to try both
-
-            # for rest in self.write(code, start=self.pos_to_button[current]):
-            #     for command_set in extra_commands:
-            #         # print("XX", "".join(commands), "|", "".join(command_set), "|", rest)
-            #         yield "".join(commands + command_set) + rest
-
-            # return
-
         yield "".join(commands)
-
-    # def write(self, code):
-    #     # I think we always start a 'A'
-    #     button = "A"
-    #     pos = self.button_to_pos[button]
-    #     commands = []
-    #     start = code
-    #     code = list(code)
-
-    #     while code:
-    #         target_button = code.pop(0)
-    #         target_pos = self.button_to_pos[target_button]
-    #         diff = (target_pos[0] - pos[0], target_pos[1] - pos[1])
-    #         moves = []
-    #         if diff[0] < 0:
-    #             moves.append(self.left)
-    #         elif diff[0] > 0:
-    #             moves.append(self.right)
-    #         if diff[1] < 0:
-    #             moves.append(self.up)
-    #         elif diff[1] > 0:
-    #             moves.append(self.down)
-
-    #         for move in moves:
-    #             new_commands, new_pos = move(pos, target_pos)
-    #             if new_commands:
-    #                 commands.extend(new_commands)
-    #                 pos = new_pos
-
-    #         # Then we need to punch A
-    #         commands.append("A")
-    #     out = "".join(commands)
-
-    #     yield out
 
 
 class ExhaustKeypad(Keypad):
@@ -282,7 +240,6 @@ numeric = ExhaustKeypad(["789", "456", "123", " 0A"])
 directional = ExhaustKeypad([" ^A", "<v>"])
 basic = Keypad([" ^A", "<v>"])
 keypads = [numeric, directional, basic]
-# keypads = [numeric, directional]
 
 
 def command_all_robots(code, keypads, pos):
@@ -296,22 +253,11 @@ def command_all_robots(code, keypads, pos):
             best = new
             bc = new_code
 
-    print(code, bc, len(bc), best)
     return best
 
 
 with open(sys.argv[1], "r") as file:
     codes = [line.strip() for line in file]
 
-total = 0
-for code in codes:
-    command = command_all_robots(code, keypads, 0)
-    print(command)
-    total += command * int(code[:-1])
 
-print(total)
-
-# print(sum(len(command_all_robots(code)) * int(code[:-1]) for code in codes))
-
-# 228938 is too high
-# 225066 is too high
+print(sum(command_all_robots(code, keypads, 0) * int(code[:-1]) for code in codes))
