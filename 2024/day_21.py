@@ -141,66 +141,27 @@ class ExhaustKeypad(Keypad):
 
     def write(self, code, start="A"):
         # The difference to the basic keypad is that this write function returns all possible codes
+
         button = start
-        pos = self.button_to_pos[button]
-        commands = []
         start = code
         code = list(code)
 
         while code:
             target_button = code.pop(0)
-            target_pos = self.button_to_pos[target_button]
+            command_set = self.get_path(button, target_button)
+            button = target_button
 
-            diff = (target_pos[0] - pos[0], target_pos[1] - pos[1])
-            moves = []
-            if diff[0] < 0:
-                moves.append(self.left)
-            elif diff[0] > 0:
-                moves.append(self.right)
-            if diff[1] < 0:
-                moves.append(self.up)
-            elif diff[1] > 0:
-                moves.append(self.down)
-
-            # If there's two, we might still on have one ordering because one hits a gap
-
-            extra_commands = []
-
-            for move_set in (
-                moves,
-                reversed(moves),
-            ):
-                current = pos
-                current_commands = []
-                for move in move_set:
-                    new_commands, new_pos = move(current, target_pos)
-                    if not new_commands:
-                        break
-                    current_commands.extend(new_commands)
-                    current = new_pos
-                else:
-                    # If we didn't break it worked nicely
-                    current_commands.append("A")
-                    extra_commands.append(current_commands)
-
-            if len(extra_commands) == 1:
-                commands.extend(extra_commands[0])
-                pos = target_pos
-                continue
-
-            # Otherwise we've got two choices and we want to try both
             out = []
-            for rest in self.write(tuple(code), start=self.pos_to_button[current]):
-                for command_set in extra_commands:
-                    # print("XX", "".join(commands), "|", "".join(command_set), "|", rest)
-                    out.append("".join(commands + command_set) + rest)
+            if not code:
+                return ["".join(cs) for cs in command_set]
+
+            for rest in self.write(tuple(code), start=target_button):
+                for cs in command_set:
+                    out.append("".join(cs) + rest)
 
             return out
 
-            return
-
-        out = ["".join(commands)]
-        return out
+        raise BadCode()
 
 
 numeric = ExhaustKeypad(["789", "456", "123", " 0A"])
