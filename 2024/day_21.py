@@ -162,16 +162,6 @@ class ExhaustKeypad(Keypad):
             elif diff[1] > 0:
                 moves.append(self.down)
 
-            # if there's only one move we can just take it
-            if len(moves) == 1:
-                new_commands, new_pos = moves[0](pos, target_pos)
-                if not new_commands:
-                    raise tim
-                commands.extend(new_commands)
-                commands.append("A")
-                pos = new_pos
-                continue
-
             # If there's two, we might still on have one ordering because one hits a gap
 
             extra_commands = []
