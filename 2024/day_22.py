@@ -4,9 +4,9 @@ import itertools
 
 
 def op(n):
-    n = (n ^ (n * 64)) & 0xFFFFFF
-    n = (n ^ (n // 32)) & 0xFFFFFF
-    n = (n ^ (n * 2048)) & 0xFFFFFF
+    n = (n ^ (n << 6)) & 0xFFFFFF
+    n = (n ^ (n >> 5)) & 0xFFFFFF
+    n = (n ^ (n << 11)) & 0xFFFFFF
     return n
 
 
@@ -39,10 +39,11 @@ winnings = defaultdict(list)
 
 
 # For part two can we store the sell price of each 4 difference sequence?
-for i, number in enumerate(numbers):
+for number in numbers:
     num_winnings = {}
     for deltas, price in get_deltas(tuple(op_sequence(number, 2000)), 4):
         if deltas in num_winnings:
+            # The monkeys always take the first match
             continue
         num_winnings[deltas] = price
 
