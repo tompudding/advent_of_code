@@ -32,17 +32,19 @@ for machine, others in connects.items():
 
 print(len([trip for trip in triples if any(t.startswith("t") for t in trip)]))
 
-complete_graphs = [{a, b} for (a, b) in edges]
+complete_graphs = {frozenset((a, b)) for (a, b) in edges}
 
 for a, b in edges:
+    new_graphs = set()
     for graph in complete_graphs:
         if a in graph and is_complete(graph, b):
-            graph.add(b)
+            new_graphs.add(frozenset(graph | {b}))
         elif b in graph and is_complete(graph, a):
-            graph.add(a)
+            new_graphs.add(frozenset(graph | {a}))
+        else:
+            new_graphs.add(graph)
+    complete_graphs = new_graphs
 
+complete_graphs = list(complete_graphs)
 complete_graphs.sort(key=lambda x: len(x))
 print(",".join(sorted(complete_graphs[-1])))
-
-# for graph in complete_graphs:
-#    print(graph)
