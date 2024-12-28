@@ -35,6 +35,11 @@ class Grid:
         self.neighbours = defaultdict(list)
         self.wall_range = [[self.width, 0], [self.height, 0]]
 
+        # For debugging, the locations of the named portals
+        self.ipn = {}
+        self.opn = {}
+        self.portal_names = {}
+
         portals = defaultdict(list)
 
         for y, row in enumerate(lines):
@@ -97,37 +102,45 @@ class Grid:
             self.inner_portals[A] = B
             self.outer_portals[B] = A
 
+            self.ipn[name] = A
+            self.opn[name] = B
+
+        for name, p in self.ipn.items():
+            self.portal_names[p] = f"{name}(inner)"
+        for name, p in self.opn.items():
+            self.portal_names[p] = f"{name}(outer)"
+
         self.compress_graph()
 
     def is_interior(self, pos):
         # If one of it's
         return (
             self.wall_range[0][0] < pos.x < self.wall_range[0][1]
-            and self.wall_range[1][0] < self.wall_range[1][1]
+            and self.wall_range[1][0] < pos.y < self.wall_range[1][1]
         )
 
-    def heuristic(self, pos):
+    def heuristic(self, pos, level):
         # Try just use how many keys we have left
-        return abs(pos[0] - self.end[0]) + abs(pos[1] - self.end[1])
+        return abs(pos[0] - self.end[0]) + abs(pos[1] - self.end[1]) + (level * 20)
 
-    def get_neighbours_basic(self, pos, level):
+    def get_neighbours_basic(self, pos):
         for direction in Directions:
             next_pos = pos + direction.value
 
             if next_pos in self.spaces:
-                yield next_pos, level
+                yield next_pos, 0
 
         if pos in self.inner_portals:
-            yield self.inner_portals[pos], level + 1
-        if level > 0:
-            if pos in self.outer_portals:
-                yield self.outer_portals[pos], level - 1
+            yield self.inner_portals[pos], 1
+
+        if pos in self.outer_portals:
+            yield self.outer_portals[pos], -1
 
     def compress_graph(self):
         # first get all the points with 3 paths
-        nodes = {self.start, self.end}
+        nodes = {self.start, self.end} | {p for p in self.inner_portals} | {p for p in self.outer_portals}
         for p in self.spaces:
-            neighbours = list(self.get_neighbours_basic(p))
+            neighbours = [n[0] for n in self.get_neighbours_basic(p)]
             if len(neighbours) >= 3:
                 nodes.add(p)
 
@@ -135,12 +148,12 @@ class Grid:
 
         for node in nodes:
             # For each of the neighbours of this node, we walk in that direction until we reach another node
-            for neighbour in self.get_neighbours_basic(node):
+            for neighbour, level_change in self.get_neighbours_basic(node):
                 last = node
                 pos = neighbour
                 cost = 1
                 while pos not in nodes:
-                    next_positions = set(self.get_neighbours_basic(pos)) - {last}
+                    next_positions = {n[0] for n in self.get_neighbours_basic(pos)} - {last}
                     if len(next_positions) == 0:
                         # dead end
                         break
@@ -149,48 +162,54 @@ class Grid:
                     pos = next_positions.pop()
                     cost += 1
                 else:
-                    self.neighbours[node].append((pos, cost))
+                    self.neighbours[node].append((pos, cost, level_change))
 
-        for node, n in self.neighbours.items():
-            print(node, n)
+    def get_neighbours(self, pos, level, scale_factor):
 
-    def get_neighbours(self, pos):
+        for target, cost, level_change in self.neighbours[pos]:
+            new_level = level + level_change * scale_factor
+            if new_level < 0:
+                continue
 
-        for target, cost in self.neighbours[pos]:
-            yield target, cost
+            yield target, cost, new_level
+
+    def find_path(self, scale_factor):
+        frontier = []
+        start = (grid.start, 0)
+        heapq.heappush(frontier, (0, start))
+        came_from = {}
+        cost_so_far = {}
+        came_from[start] = None
+        cost_so_far[start] = 0
+
+        target = (grid.end, 0)
+
+        while frontier:
+            s, (pos, level) = heapq.heappop(frontier)
+
+            if (pos, level) == target:
+                # Got it!
+                break
+
+            for next_pos, cost, new_level in grid.get_neighbours(pos, level, scale_factor):
+                new_state = (next_pos, new_level)
+                new_cost = cost_so_far[(pos, level)] + cost
+
+                if new_state not in cost_so_far or new_cost < cost_so_far[new_state]:
+                    cost_so_far[new_state] = new_cost
+                    priority = new_cost + grid.heuristic(*new_state)
+                    heapq.heappush(frontier, (priority, new_state))
+                    came_from[new_state] = pos, level
+
+        else:
+            print("Failed to find the path")
+            raise Bad()
+
+        return cost_so_far[target]
 
 
 with open(sys.argv[1], "r") as file:
     grid = Grid([line.strip("\n") for line in file])
 
-frontier = []
-start = grid.start
-heapq.heappush(frontier, (0, start))
-came_from = {}
-cost_so_far = {}
-came_from[start] = None
-cost_so_far[start] = 0
-
-while frontier:
-    s, pos = heapq.heappop(frontier)
-
-    if pos == grid.end:
-        # Got it!
-        break
-
-    for next_pos, cost in grid.get_neighbours(pos):
-        new_cost = cost_so_far[pos] + cost
-
-        if next_pos not in cost_so_far or new_cost < cost_so_far[next_pos]:
-            cost_so_far[next_pos] = new_cost
-            priority = new_cost + grid.heuristic(next_pos)
-            heapq.heappush(frontier, (priority, next_pos))
-            came_from[next_pos] = pos
-
-
-else:
-    print("Failed to find the path")
-    raise Bad()
-
-
-print(cost_so_far[grid.end])
+print(grid.find_path(scale_factor=0))
+print(grid.find_path(scale_factor=1))
