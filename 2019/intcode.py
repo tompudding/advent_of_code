@@ -4,8 +4,10 @@ import enum
 class InputStall(Exception):
     pass
 
+
 class OutputStall(Exception):
     pass
+
 
 class Halted(Exception):
     pass
@@ -41,7 +43,8 @@ class Instruction:
             # If there's multiple values there's always an output I think? Make sure it's in position/relative
             # mode
             self.out = self.values[self.out_val]
-            assert self.modes[self.out_val - 1] in [ParameterMode.POSITION, ParameterMode.RELATIVE]
+            # print(self.modes, self.out_val, self.pos)
+            # assert self.modes[self.out_val - 1] in [ParameterMode.POSITION, ParameterMode.RELATIVE]
 
     def get_val(self, n):
         mode = ParameterMode(self.modes[n])
@@ -60,7 +63,17 @@ class Instruction:
         return self.out
 
     def __repr__(self):
-        return f"{self.nemonic:3s} : {self.values=} {self.modes=}"
+        args = []
+        for param, mode in zip(self.params, self.modes):
+            if mode == ParameterMode.IMMEDIATE:
+                args.append(f"#{param}")
+            elif mode == ParameterMode.POSITION:
+                args.append(f"[{param}]")
+            elif mode == ParameterMode.RELATIVE:
+                args.append(f"<{param}>")
+        args = ", ".join(args)
+
+        return f"{self.nemonic:3s} : {args}"
 
 
 class BinaryInstruction(Instruction):
@@ -222,7 +235,7 @@ class IntCode:
                 break
             self.pc += ins.num_ints
 
-            if len(self.output) > 10000 and self.output[-1] == ord('\n'):
+            if len(self.output) > 10000 and self.output[-1] == ord("\n"):
                 raise OutputStall
 
     def resume(self):
@@ -237,34 +250,33 @@ class IntCode:
 
         while True:
             if self.output:
-                print('Output',self.output)
+                print("Output", self.output)
                 self.output = []
 
-            command = input(f'Stopped at PC {self.pc} >')
-            if command[0] == 's':
+            command = input(f"Stopped at PC {self.pc} >")
+            if command[0] == "s":
                 num = int(command[1:].strip(), 0)
                 self.step(num)
                 continue
-            elif command[0] == 'c':
+            elif command[0] == "c":
                 try:
                     self.resume()
                 except InputStall:
-                    print('CPU asking for input:')
+                    print("CPU asking for input:")
                     continue
-            elif command[0] == 'i':
+            elif command[0] == "i":
                 num = int(command[1:].strip(), 0)
                 self.inputs.append(num)
                 continue
-            elif command[0] == 'p':
+            elif command[0] == "p":
                 rest = command[1:].strip()
                 try:
-                    start, end = (int(part.strip(),0) for part in rest.split(':'))
+                    start, end = (int(part.strip(), 0) for part in rest.split(":"))
                 except ValueError:
                     start = int(rest.strip(), 0)
                     end = start + 1
                 for pos in range(start, end):
-                    print(f'{pos:3d} : {self.program[pos]}')
-
+                    print(f"{pos:3d} : {self.program[pos]}")
 
     def __repr__(self):
         out = []
@@ -279,7 +291,7 @@ class IntCode:
                 ins = f"UNK : {self.program[pos]}"
                 jump = 1
 
-            out.append(f'{pos:3d} : {ins}')
+            out.append(f"{pos:3d} : {ins}")
             pos += jump
 
         return "\n".join(out)
