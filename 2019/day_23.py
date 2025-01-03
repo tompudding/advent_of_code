@@ -12,15 +12,19 @@ nodes = [intcode.IntCode(instructions, [i], max_out=3) for i in range(50)]
 
 
 time = 0
-queue = collections.defaultdict(list)
+queue = {i: [] for i in range(len(nodes))}
 done = False
+nat_pack = None
+read_nothing = {}
+last = None
+done_part_one = False
 
 while not done:
     waiting = []
 
     for i, node in enumerate(nodes):
         try:
-            node.step(1)
+            node.resume()
         except intcode.InputStall:
             assert len(node.output) == 0
             waiting.append(i)
@@ -28,15 +32,33 @@ while not done:
             assert len(node.output) == 3
             target = node.output[0]
             if target == 255:
-                done = True
-                print(node.output[2])
-                break
+                if not done_part_one:
+                    print(node.output[2])
+                    done_part_one = True
+                nat_pack = node.output[1:]
+                node.output = []
+                continue
             queue[target].extend(node.output[1:])
             node.output = []
+
+    if (
+        len(read_nothing) == len(nodes)
+        and all(read_nothing.values())
+        and 0 == sum(len(q) for q in queue.values())
+        and nat_pack
+    ):
+        if nat_pack[1] == last:
+            print(last)
+            break
+        last = nat_pack[1]
+        queue[0].extend(nat_pack)
 
     for node in waiting:
         l = queue[node]
         value = -1
+        have_nothing = True
         if l:
             value = l.pop(0)
+            have_nothing = False
+        read_nothing[node] = have_nothing
         nodes[node].inputs.append(value)
