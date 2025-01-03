@@ -44,7 +44,7 @@ class Instruction:
             # mode
             self.out = self.values[self.out_val]
             # print(self.modes, self.out_val, self.pos)
-            # assert self.modes[self.out_val - 1] in [ParameterMode.POSITION, ParameterMode.RELATIVE]
+            assert self.modes[self.out_val - 1] in [ParameterMode.POSITION, ParameterMode.RELATIVE]
 
     def get_val(self, n):
         mode = ParameterMode(self.modes[n])
@@ -183,13 +183,14 @@ all_instructions = (Add, Multiply, Input, Output, JEQ, JNE, LT, EQ, AdjustRelati
 class IntCode:
     instruction_map = {cls.opcode: cls for cls in all_instructions}
 
-    def __init__(self, program, inputs=[]):
+    def __init__(self, program, inputs=[], max_out=10000):
         self.program = program[::] + [0] * 10000
         self.inputs = inputs[::]
         self.output = []
         self.pc = 0
         self.halted = False
         self.relative_base = 0
+        self.max_out = max_out
 
     def halt(self):
         self.halted = True
@@ -235,7 +236,7 @@ class IntCode:
                 break
             self.pc += ins.num_ints
 
-            if len(self.output) > 10000 and self.output[-1] == ord("\n"):
+            if len(self.output) >= self.max_out:
                 raise OutputStall
 
     def resume(self):
