@@ -1,4 +1,5 @@
 import enum
+import copy
 
 
 class InputStall(Exception):
@@ -194,6 +195,9 @@ class IntCode:
 
     def halt(self):
         self.halted = True
+
+    def clone(self):
+        return copy.deepcopy(self)
 
     def get_input(self):
         if len(self.inputs) == 0:
