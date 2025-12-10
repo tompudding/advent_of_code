@@ -17,12 +17,7 @@ def parse_desired(desired):
 
 
 def convert_buttons(data, num):
-    out = []
-
-    for i in range(num):
-        out.append(np.array([1 if i in button else 0 for button in data]))
-
-    return np.array(out)
+    return np.array([[1 if i in button else 0 for button in data] for i in range(num)])
 
 
 def bits_set(x, n):
@@ -37,7 +32,6 @@ class Machine:
         self.buttons = [parse_button(part) for part in buttons.split()]
         self.button_values = [button_to_value(button) for button in self.buttons]
         self.desired = parse_desired(desired)
-
         self.button_equations = convert_buttons(self.buttons, len(self.joltage))
 
     def press_result(self, pattern):
@@ -59,12 +53,11 @@ class Machine:
         return density
 
     def min_joltage_presses(self):
+        # Scipi's linprog does exactly where we want, it minimises the function C over the solution
         result = scipy.optimize.linprog(
-            np.array([1 for i in range(len(self.button_equations[0]))]),
-            None,
-            None,
-            self.button_equations,
-            self.joltage,
+            c=np.array([1 for i in range(len(self.button_equations[0]))]),
+            A_eq=self.button_equations,
+            b_eq=self.joltage,
             integrality=1,
         )
         # Adding the values for result.x doesn't always give result.fun. Floating point errors?
