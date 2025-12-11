@@ -1,6 +1,7 @@
 import sys
 import copy
 import collections
+import utils
 
 
 class Node:
@@ -39,30 +40,14 @@ class Graph:
                 if len(incoming[m]) == 0:
                     start_nodes.add(m)
 
-    def count_paths(self, start, end, dont_pass={}):
+    def count_paths(self, start, end):
         num_paths = {name: 0 for name in self.nodes}
         num_paths[start] = 1
 
         for node in self.top_sorted:
-            if node in dont_pass:
-                continue
             for neighbour in graph.nodes[node].neighbours:
-                if neighbour in dont_pass:
-                    num_paths[neighbour] = 0
-                else:
-                    num_paths[neighbour] += num_paths[node]
+                num_paths[neighbour] += num_paths[node]
         return num_paths[end]
-
-    def get_paths(self, start, end):
-        paths = {name: [] for name in self.nodes}
-        paths[start] = [[start]]
-
-        for node in self.top_sorted:
-            for neighbour in graph.nodes[node].neighbours:
-                for path in paths[node]:
-                    paths[neighbour].append(path + [neighbour])
-
-        return paths[end]
 
 
 graph = Graph()
@@ -79,7 +64,8 @@ graph.topological_sort()
 print(graph.count_paths("you", "out"))
 
 
-svr_to_fft = graph.count_paths("svr", "fft")
-fft_to_out_no_dac = graph.count_paths("fft", "out", {"dac"})
-fft_to_out_with_dac = graph.count_paths("fft", "out") - fft_to_out_no_dac
-print(svr_to_fft * fft_to_out_with_dac)
+print(
+    utils.prod(
+        graph.count_paths(start, end) for (start, end) in (("svr", "fft"), ("fft", "dac"), (("dac", "out")))
+    )
+)
