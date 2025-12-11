@@ -39,13 +39,18 @@ class Graph:
                 if len(incoming[m]) == 0:
                     start_nodes.add(m)
 
-    def count_paths(self, start, end):
+    def count_paths(self, start, end, dont_pass={}):
         num_paths = {name: 0 for name in self.nodes}
         num_paths[start] = 1
 
         for node in self.top_sorted:
-            for neighbor in graph.nodes[node].neighbours:
-                num_paths[neighbor] += num_paths[node]
+            if node in dont_pass:
+                continue
+            for neighbour in graph.nodes[node].neighbours:
+                if neighbour in dont_pass:
+                    num_paths[neighbour] = 0
+                else:
+                    num_paths[neighbour] += num_paths[node]
         return num_paths[end]
 
     def get_paths(self, start, end):
@@ -72,5 +77,9 @@ graph.add_node(Node("out", set()))
 graph.topological_sort()
 
 print(graph.count_paths("you", "out"))
-print(graph.count_paths("svr", "out"))
-print(len([path for path in graph.get_paths("svr", "out") if "fft" in path and "dac" in path]))
+
+
+svr_to_fft = graph.count_paths("svr", "fft")
+fft_to_out_no_dac = graph.count_paths("fft", "out", {"dac"})
+fft_to_out_with_dac = graph.count_paths("fft", "out") - fft_to_out_no_dac
+print(svr_to_fft * fft_to_out_with_dac)
