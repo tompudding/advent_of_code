@@ -58,5 +58,3 @@ for r in ranges:
     pos = end + 1
 
 print(count)
-
-# 330033121340659 is too low

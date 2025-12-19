@@ -53,7 +53,9 @@ class Machine:
         return density
 
     def min_joltage_presses(self):
-        # Scipi's linprog does exactly where we want, it minimises the function C over the solution
+        # Scipi's linprog does exactly where we want, it minimises the function C over the solution, and we
+        # can set C to all ones to just count the number of presses. Then the buttons form a matrix and the
+        # target joltage is the desired result.
         result = scipy.optimize.linprog(
             c=np.array([1 for i in range(len(self.button_equations[0]))]),
             A_eq=self.button_equations,
