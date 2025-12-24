@@ -15,30 +15,41 @@ def full_digits(num, length):
     return list(reversed(out))
 
 
+def cook(recipes, elves, num_recipes):
+    next = sum(recipes[elf] for elf in elves)
+    if next >= 10:
+        recipes[num_recipes] = 1
+        num_recipes += 1
+    recipes[num_recipes] = next % 10
+    num_recipes += 1
+
+    elves[0] = (recipes[elves[0]] + 1 + elves[0]) % num_recipes
+    elves[1] = (recipes[elves[1]] + 1 + elves[1]) % num_recipes
+
+    return num_recipes
+
+
 with open(sys.argv[1]) as file:
     num = int(file.read().strip())
 
-recipes = [3, 7]
+recipes = bytearray(21000000)
+recipes[:2] = [3, 7]
+num_recipes = 2
 elves = [0, 1]
 
-while len(recipes) < num + 10:
-    new_recipes = digits(sum(recipes[elf] for elf in elves))
-    recipes.extend(new_recipes)
-    elves = [(elf + 1 + recipes[elf]) % len(recipes) for elf in elves]
+while num_recipes < num + 10:
+    num_recipes = cook(recipes, elves, num_recipes)
 
 print("".join(f"{d}" for d in recipes[num : num + 10]))
 
-recipes = [3, 7]
-elves = [0, 1]
 matched_pos = 0
-target_digits = full_digits(num, 6)
+target_digits = bytearray(full_digits(num, 6))
+
 
 while True:
-    new_recipes = digits(sum(recipes[elf] for elf in elves))
-    recipes.extend(new_recipes)
-    elves = [(elf + 1 + recipes[elf]) % len(recipes) for elf in elves]
+    num_recipes = cook(recipes, elves, num_recipes)
 
-    while matched_pos < len(recipes) - len(target_digits):
+    while matched_pos < num_recipes - len(target_digits):
         if recipes[matched_pos : matched_pos + len(target_digits)] == target_digits:
             print(matched_pos)
             raise SystemExit()
