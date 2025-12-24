@@ -42,7 +42,7 @@ while num_recipes < num + 10:
 
 print("".join(f"{d}" for d in recipes[num : num + 10]))
 
-matched_pos = 0
+matched_pos = matched = 0
 target_digits = bytearray(full_digits(num, 6))
 
 
@@ -50,7 +50,11 @@ while True:
     num_recipes = cook(recipes, elves, num_recipes)
 
     while matched_pos < num_recipes - len(target_digits):
-        if recipes[matched_pos : matched_pos + len(target_digits)] == target_digits:
-            print(matched_pos)
-            raise SystemExit()
+        if recipes[matched_pos] == target_digits[matched]:
+            matched += 1
+            if matched == len(target_digits):
+                print(matched_pos + 1 - matched)
+                raise SystemExit()
+        else:
+            matched = 0
         matched_pos += 1
